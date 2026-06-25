@@ -1,14 +1,14 @@
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function sendMagicLink(toEmail: string, name: string, token: string): Promise<void> {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const link = `${base}/portal?token=${token}`;
 
-  await sgMail.send({
+  await resend.emails.send({
+    from:    process.env.RESEND_FROM_EMAIL ?? "CRS Partner Portal <portal@cyberretaliator.com>",
     to:      toEmail,
-    from:    process.env.SENDGRID_FROM_EMAIL!,
     subject: "Your CRS Partner Portal Login Link",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
