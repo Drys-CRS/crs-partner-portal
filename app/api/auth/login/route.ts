@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   let token;
   try {
-    token = await signToken({ email: partner.email, tier: partner.tier, name: partner.name });
+    token = await signToken({ email: partner.email, name: partner.name });
   } catch (err) {
     console.error("[login] Token signing failed:", err);
     return NextResponse.json({ error: "Authentication error. Please try again." }, { status: 500 });

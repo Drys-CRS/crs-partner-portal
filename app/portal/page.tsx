@@ -4,14 +4,8 @@ import Image from "next/image";
 import ResourceList from "@/components/portal/ResourceList";
 import { LogOut, Loader2 } from "lucide-react";
 
-type User = { email: string; name: string; tier: string };
-type ContentItem = { id: string; title: string; type: string; content: string; requiredTier: string };
-
-const TIER_COLOURS: Record<string, string> = {
-  Gold:   "bg-amber-900/40 text-amber-300 border-amber-700",
-  Silver: "bg-slate-700/40  text-slate-300  border-slate-600",
-  Bronze: "bg-orange-900/40 text-orange-300 border-orange-700",
-};
+type User = { email: string; name: string };
+type ContentItem = { id: string; title: string; type: string; content: string };
 
 export default function PortalPage() {
   const [user, setUser]       = useState<User | null>(null);
@@ -50,8 +44,6 @@ export default function PortalPage() {
     window.location.href = "/login";
   }
 
-  const tierColour = TIER_COLOURS[user?.tier ?? ""] ?? "bg-slate-700/40 text-slate-300 border-slate-600";
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
@@ -63,12 +55,7 @@ export default function PortalPage() {
           </div>
           <div className="flex items-center gap-4">
             {user && (
-              <>
-                <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${tierColour}`}>
-                  {user.tier}
-                </span>
-              </>
+              <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
             )}
             <button onClick={logout}
               className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
@@ -83,9 +70,7 @@ export default function PortalPage() {
         {user && (
           <div>
             <h1 className="text-2xl font-bold">Welcome back{user.name ? `, ${user.name}` : ""}</h1>
-            <p className="mt-1 text-slate-400 text-sm">
-              You have access to <strong className="text-amber-400">{user.tier}</strong>-tier content and above.
-            </p>
+            <p className="mt-1 text-slate-400 text-sm">Here are your partner resources.</p>
           </div>
         )}
 

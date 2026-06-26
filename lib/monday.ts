@@ -19,7 +19,6 @@ export type Partner = {
   id: string;
   name: string;
   email: string;
-  tier: "Gold" | "Silver" | "Bronze";
 };
 
 export type ContentItem = {
@@ -27,7 +26,6 @@ export type ContentItem = {
   title: string;
   type: string;
   content: string;
-  requiredTier: "Gold" | "Silver" | "Bronze";
   documentUrl?: string;
   documentName?: string;
 };
@@ -73,9 +71,7 @@ export async function findPartnerByEmail(email: string): Promise<Partner | null>
   const items = data.boards[0]?.items_page?.items ?? [];
 
   const item = items.find(
-    (i) =>
-      colValue(i, "email_mm4pmxvq").toLowerCase() === needle &&
-      ["Gold", "Silver", "Bronze"].includes(colValue(i, "color_mm4pv7j2")),
+    (i) => colValue(i, "email_mm4pmxvq").toLowerCase() === needle,
   );
   if (!item) return null;
 
@@ -83,19 +79,15 @@ export async function findPartnerByEmail(email: string): Promise<Partner | null>
     id: item.id,
     name: item.name,
     email: colValue(item, "email_mm4pmxvq"),
-    tier: colValue(item, "color_mm4pv7j2") as Partner["tier"],
   };
 }
 
 // ── Content ───────────────────────────────────────────────────────────────────
 // Column IDs on board 18419459740:
-//   color_mm4pwep9  → Type          (labels: Document / Video / Link)
+//   color_mm4pwep9  → Type         (labels: Document / Video / Link)
 //   link_mm4pae59   → Content URL
-//   color_mm4peazb  → Required Tier (labels: Gold / Silver / Bronze)
 
-const TIER_RANK: Record<string, number> = { Bronze: 1, Silver: 2, Gold: 3 };
-
-export async function getContentForTier(userTier: string): Promise<ContentItem[]> {
+export async function getContent(): Promise<ContentItem[]> {
   const data = await gql<{ boards: { items_page: { items: BoardItem[] } }[] }>(
     `query ($boardId: ID!) {
        boards(ids: [$boardId]) {
@@ -107,25 +99,20 @@ export async function getContentForTier(userTier: string): Promise<ContentItem[]
     { boardId: env("MONDAY_CONTENT_BOARD_ID") },
   );
 
-  const userRank = TIER_RANK[userTier] ?? 0;
-
   type FileCol = { files?: { name: string; url: string }[] };
 
-  return (data.boards[0]?.items_page?.items ?? [])
-    .map((item) => {
-      const fileCol = colJson<FileCol>(item, "file_mm4p4had");
-      const firstFile = fileCol?.files?.[0];
-      return {
-        id: item.id,
-        title: item.name,
-        type: colValue(item, "color_mm4pwep9"),
-        content: colValue(item, "link_mm4pae59"),
-        requiredTier: colValue(item, "color_mm4peazb") as ContentItem["requiredTier"],
-        documentUrl: firstFile?.url,
-        documentName: firstFile?.name,
-      };
-    })
-    .filter((c) => (TIER_RANK[c.requiredTier] ?? 0) <= userRank);
+  return (data.boards[0]?.items_page?.items ?? []).map((item) => {
+    const fileCol = colJson<FileCol>(item, "file_mm4p4had");
+    const firstFile = fileCol?.files?.[0];
+    return {
+      id: item.id,
+      title: item.name,
+      type: colValue(item, "color_mm4pwep9"),
+      content: colValue(item, "link_mm4pae59"),
+      documentUrl: firstFile?.url,
+      documentName: firstFile?.name,
+    };
+  });
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────
@@ -201,12 +188,8 @@ export async function createPartnerFromApplication(itemId: string): Promise<stri
   const existing = await findPartnerByEmail(email);
   if (existing) return existing.id;
 
-  const tier = colValue(item, "color_mm4p7yr8");
-  const partnerTier = ["Gold", "Silver", "Bronze"].includes(tier) ? tier : "Bronze";
-
   const colVals = JSON.stringify({
     email_mm4pmxvq: { email, text: email },
-    color_mm4pv7j2: { label: partnerTier },
   });
 
   const { create_item } = await gql<{ create_item: { id: string } }>(

@@ -4,7 +4,6 @@ const secret = () => new TextEncoder().encode(process.env.JWT_SECRET!);
 
 export type TokenPayload = {
   email: string;
-  tier: string;
   name: string;
 };
 
@@ -20,7 +19,6 @@ export async function verifyToken(token: string): Promise<TokenPayload> {
   const { payload } = await jwtVerify(token, secret());
   return {
     email: payload.email as string,
-    tier:  payload.tier  as string,
     name:  payload.name  as string,
   };
 }

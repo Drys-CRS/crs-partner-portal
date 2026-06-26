@@ -5,7 +5,6 @@ type Props = {
   title: string;
   type: string;
   content: string;
-  requiredTier: string;
   documentUrl?: string;
   documentName?: string;
 };
@@ -16,28 +15,16 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
   Link:     <LinkIcon className="h-4 w-4" />,
 };
 
-const TIER_BADGE: Record<string, string> = {
-  Gold:   "bg-yellow-900/40 text-yellow-300 border-yellow-700",
-  Silver: "bg-slate-700/40  text-slate-300  border-slate-600",
-  Bronze: "bg-orange-900/40 text-orange-300 border-orange-700",
-};
-
 const isUrl = (s: string) => /^https?:\/\//.test(s);
 
-export default function ContentCard({ title, type, content, requiredTier, documentUrl, documentName }: Props) {
-  const icon  = TYPE_ICON[type] ?? <FileText className="h-4 w-4" />;
-  const badge = TIER_BADGE[requiredTier] ?? "bg-slate-700/40 text-slate-300 border-slate-600";
+export default function ContentCard({ title, type, content, documentUrl, documentName }: Props) {
+  const icon = TYPE_ICON[type] ?? <FileText className="h-4 w-4" />;
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5 flex flex-col gap-3 hover:border-slate-600 transition-colors">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 text-slate-300">
-          {icon}
-          <span className="text-xs font-semibold uppercase tracking-wider">{type}</span>
-        </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge}`}>
-          {requiredTier}
-        </span>
+      <div className="flex items-center gap-2 text-slate-300">
+        {icon}
+        <span className="text-xs font-semibold uppercase tracking-wider">{type}</span>
       </div>
 
       <h3 className="font-semibold text-white leading-snug">{title}</h3>

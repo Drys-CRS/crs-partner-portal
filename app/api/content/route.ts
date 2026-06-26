@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
-import { getContentForTier } from "@/lib/monday";
+import { getContent } from "@/lib/monday";
 
 export const runtime = "nodejs";
 
@@ -20,6 +20,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
   }
 
-  const content = await getContentForTier(payload.tier);
-  return NextResponse.json({ content, user: { email: payload.email, name: payload.name, tier: payload.tier } });
+  const content = await getContent();
+  return NextResponse.json({ content, user: { email: payload.email, name: payload.name } });
 }
