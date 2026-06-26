@@ -155,8 +155,9 @@ export async function createSubmission(name: string, email: string, message: str
 //   text_mm4pgqnt       → Company
 //   phone_mm4pyj2h      → Phone
 //   long_text_mm4px2e4  → Message
-//   color_mm4p6kfw      → Status  (labels: Pending Review / Approved / Rejected)
+//   color_mm4p6kfw      → Status         (labels: 0=Pending Review, 1=Approved, 2=Rejected)
 //   date_mm4pdwxh       → Applied At
+//   color_mm4p7yr8      → Assigned Tier  (labels: Bronze / Silver / Gold)
 
 export async function createApplication(
   name: string,
@@ -181,4 +182,37 @@ export async function createApplication(
   );
 
   return data.create_item.id;
+}
+
+export async function createPartnerFromApplication(itemId: string): Promise<string | null> {
+  const { items } = await gql<{ items: BoardItem[] }>(
+    `query ($ids: [ID!]!) { items(ids: $ids) { id name column_values { id text value } } }`,
+    { ids: [itemId] },
+  );
+
+  const item = items[0];
+  if (!item) return null;
+
+  const email = colValue(item, "email_mm4pd170");
+  if (!email) return null;
+
+  const existing = await findPartnerByEmail(email);
+  if (existing) return existing.id;
+
+  const tier = colValue(item, "color_mm4p7yr8");
+  const partnerTier = ["Gold", "Silver", "Bronze"].includes(tier) ? tier : "Bronze";
+
+  const colVals = JSON.stringify({
+    email_mm4pmxvq: { email, text: email },
+    color_mm4pv7j2: { label: partnerTier },
+  });
+
+  const { create_item } = await gql<{ create_item: { id: string } }>(
+    `mutation ($boardId: ID!, $name: String!, $colVals: JSON!) {
+       create_item(board_id: $boardId, item_name: $name, column_values: $colVals) { id }
+     }`,
+    { boardId: env("MONDAY_PARTNERS_BOARD_ID"), name: item.name, colVals },
+  );
+
+  return create_item.id;
 }
