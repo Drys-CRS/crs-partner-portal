@@ -10,12 +10,17 @@ const FROM = () =>
   "CRS Partner Portal <portal@cyberretaliatorsolutions.com>";
 
 const pool = new pg.Pool({
-  host: "db.gstbkgkslqqqjfvghoxy.supabase.co",
+  host: process.env.NODE_ENV === "production"
+    ? "aws-0-eu-west-1.pooler.supabase.com"  // Supabase pooler (required for Vercel)
+    : "db.gstbkgkslqqqjfvghoxy.supabase.co", // Direct connection for local dev
   port: 5432,
   database: "postgres",
-  user: "postgres",
+  user: process.env.NODE_ENV === "production"
+    ? "postgres.gstbkgkslqqqjfvghoxy"         // Pooler username includes project ref
+    : "postgres",
   password: process.env.SUPABASE_DB_PASSWORD,
   ssl: { rejectUnauthorized: false },
+  max: 3, // keep pool small for serverless
 });
 
 pool.on("error", (err) => console.error("[auth] pg pool error:", err.message));
