@@ -107,7 +107,7 @@ async function listFilesRecursive(
 
   for (const item of items) {
     if (item.folder) {
-      if (item.name.toLowerCase() === "do not use") continue;
+      if (item.name.toLowerCase().includes("do not use")) continue;
       const children = await listFilesRecursive(token, siteId, driveRef, item.id, `${folderPath}/${item.name}`);
       results.push(...children);
     } else if (item.file) {
