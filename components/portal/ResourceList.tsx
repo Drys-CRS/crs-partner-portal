@@ -6,6 +6,8 @@ type ContentItem = {
   type: string;
   content: string;
   requiredTier: string;
+  documentUrl?: string;
+  documentName?: string;
 };
 
 type Props = { items: ContentItem[] };

@@ -28,12 +28,20 @@ export type ContentItem = {
   type: string;
   content: string;
   requiredTier: "Gold" | "Silver" | "Bronze";
+  documentUrl?: string;
+  documentName?: string;
 };
 
 type BoardItem = { id: string; name: string; column_values: { id: string; text: string; value: string }[] };
 
 function colValue(item: BoardItem, id: string): string {
   return item.column_values.find((c) => c.id === id)?.text ?? "";
+}
+
+function colJson<T>(item: BoardItem, id: string): T | null {
+  const raw = item.column_values.find((c) => c.id === id)?.value;
+  if (!raw || raw === "null") return null;
+  try { return JSON.parse(raw) as T; } catch { return null; }
 }
 
 // ── Partners ──────────────────────────────────────────────────────────────────
@@ -91,14 +99,22 @@ export async function getContentForTier(userTier: string): Promise<ContentItem[]
 
   const userRank = TIER_RANK[userTier] ?? 0;
 
+  type FileCol = { files?: { name: string; url: string }[] };
+
   return (data.boards[0]?.items_page?.items ?? [])
-    .map((item) => ({
-      id: item.id,
-      title: item.name,
-      type: colValue(item, "color_mm4pwep9"),
-      content: colValue(item, "link_mm4pae59"),
-      requiredTier: colValue(item, "color_mm4peazb") as ContentItem["requiredTier"],
-    }))
+    .map((item) => {
+      const fileCol = colJson<FileCol>(item, "file_mm4p4had");
+      const firstFile = fileCol?.files?.[0];
+      return {
+        id: item.id,
+        title: item.name,
+        type: colValue(item, "color_mm4pwep9"),
+        content: colValue(item, "link_mm4pae59"),
+        requiredTier: colValue(item, "color_mm4peazb") as ContentItem["requiredTier"],
+        documentUrl: firstFile?.url,
+        documentName: firstFile?.name,
+      };
+    })
     .filter((c) => (TIER_RANK[c.requiredTier] ?? 0) <= userRank);
 }
 

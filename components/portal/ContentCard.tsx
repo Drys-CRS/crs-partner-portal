@@ -1,4 +1,4 @@
-import { FileText, Video, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { FileText, Video, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
 
 type Props = {
   id: string;
@@ -6,6 +6,8 @@ type Props = {
   type: string;
   content: string;
   requiredTier: string;
+  documentUrl?: string;
+  documentName?: string;
 };
 
 const TYPE_ICON: Record<string, React.ReactNode> = {
@@ -22,7 +24,7 @@ const TIER_BADGE: Record<string, string> = {
 
 const isUrl = (s: string) => /^https?:\/\//.test(s);
 
-export default function ContentCard({ title, type, content, requiredTier }: Props) {
+export default function ContentCard({ title, type, content, requiredTier, documentUrl, documentName }: Props) {
   const icon  = TYPE_ICON[type] ?? <FileText className="h-4 w-4" />;
   const badge = TIER_BADGE[requiredTier] ?? "bg-slate-700/40 text-slate-300 border-slate-600";
 
@@ -45,8 +47,16 @@ export default function ContentCard({ title, type, content, requiredTier }: Prop
           className="inline-flex items-center gap-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors">
           Open resource <ExternalLink className="h-3.5 w-3.5" />
         </a>
-      ) : (
+      ) : content ? (
         <p className="text-sm text-slate-400 leading-relaxed line-clamp-4">{content}</p>
+      ) : null}
+
+      {documentUrl && (
+        <a href={documentUrl} target="_blank" rel="noopener noreferrer" download={documentName}
+          className="inline-flex items-center gap-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors mt-auto pt-1 border-t border-slate-700">
+          <Download className="h-3.5 w-3.5" />
+          {documentName ?? "Download document"}
+        </a>
       )}
     </div>
   );
