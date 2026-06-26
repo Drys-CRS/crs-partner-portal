@@ -6,12 +6,15 @@ import mammoth from "mammoth";
 
 export const runtime = "nodejs";
 
-// File extensions we can read as plain text
-const TEXT_EXTENSIONS = [".txt", ".md", ".csv"];
-// Word documents — extracted via mammoth
-const DOCX_EXTENSIONS = [".docx", ".doc"];
-// Unsupported — can't extract text without specialised libraries
-const UNSUPPORTED_EXTENSIONS = [".pdf", ".xlsx", ".pptx", ".ppt", ".xls"];
+const TEXT_EXTENSIONS  = [".txt", ".md", ".csv"];
+const DOCX_EXTENSIONS  = [".docx", ".doc"];
+const PDF_EXTENSIONS   = [".pdf"];
+// Still unsupported
+const UNSUPPORTED_EXTENSIONS = [".xlsx", ".pptx", ".ppt", ".xls"];
+
+function isSyncable(ext: string) {
+  return TEXT_EXTENSIONS.includes(ext) || DOCX_EXTENSIONS.includes(ext) || PDF_EXTENSIONS.includes(ext);
+}
 
 async function getGraphToken(): Promise<string> {
   const tenantId = process.env.AZURE_TENANT_ID;
@@ -109,9 +112,9 @@ async function listFilesRecursive(
       results.push(...children);
     } else if (item.file) {
       const ext = item.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
-      const syncable = TEXT_EXTENSIONS.includes(ext) || DOCX_EXTENSIONS.includes(ext);
+      const syncable = isSyncable(ext);
       const reason = UNSUPPORTED_EXTENSIONS.includes(ext)
-        ? "PDF/Excel/PowerPoint — paste content manually"
+        ? "Excel/PowerPoint — paste content manually"
         : syncable ? undefined : "Unknown format";
       results.push({
         id: item.id,
@@ -224,23 +227,28 @@ export async function POST(req: NextRequest) {
 
   const fileEndpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/${driveRef}/items/${fileId}/content`;
 
+  const fileRes = await fetch(fileEndpoint, { headers: { Authorization: `Bearer ${token}` } });
+  if (!fileRes.ok) return NextResponse.json({ error: `Failed to download file (HTTP ${fileRes.status}).` }, { status: 502 });
+  const buffer = Buffer.from(await fileRes.arrayBuffer());
+
   if (TEXT_EXTENSIONS.includes(ext)) {
-    const res = await fetch(fileEndpoint, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return NextResponse.json({ error: "Failed to read file content." }, { status: 502 });
-    content = await res.text();
+    content = buffer.toString("utf-8").trim();
 
   } else if (DOCX_EXTENSIONS.includes(ext)) {
-    // Download raw bytes, extract text with mammoth (Graph HTML conversion not supported for SP)
-    const res = await fetch(fileEndpoint, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return NextResponse.json({ error: "Failed to download Word document." }, { status: 502 });
-    const buffer = Buffer.from(await res.arrayBuffer());
     const result = await mammoth.extractRawText({ buffer });
     content = result.value.trim();
     if (!content) return NextResponse.json({ error: "Word document appears to be empty." }, { status: 400 });
 
+  } else if (PDF_EXTENSIONS.includes(ext)) {
+    // Dynamic import avoids pdf-parse test-file read at module load time
+    const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
+    const result = await pdfParse(buffer);
+    content = result.text.trim();
+    if (!content) return NextResponse.json({ error: "PDF appears to have no extractable text (may be scanned image)." }, { status: 400 });
+
   } else {
     return NextResponse.json({
-      error: `"${ext}" files cannot be auto-extracted. Copy the text content and add it manually as a KB entry.`,
+      error: `"${ext}" files cannot be auto-extracted. Copy the text and add it manually as a KB entry.`,
     }, { status: 400 });
   }
 

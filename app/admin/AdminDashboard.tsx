@@ -34,6 +34,7 @@ export default function AdminDashboard({ adminEmail }: Props) {
   const [loadingKB, setLoadingKB] = useState(true);
   const [loadingSP, setLoadingSP] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [newEntry, setNewEntry] = useState({ name: "", content: "" });
   const [addingEntry, setAddingEntry] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -56,6 +57,47 @@ export default function AdminDashboard({ adminEmail }: Props) {
     if (res.ok) setSPFiles(data.files ?? []);
     else setMsg({ type: "err", text: data.error ?? "Failed to load SharePoint folder." });
     setLoadingSP(false);
+    return res.ok ? (data.files ?? []) as SPFile[] : null;
+  }
+
+  async function browseAndSyncAll() {
+    setMsg(null);
+    setBulkProgress(null);
+    const files = await loadSharePoint();
+    if (!files) return;
+
+    const syncable = files.filter(f => f.syncable);
+    if (!syncable.length) {
+      setMsg({ type: "err", text: "No supported files found to sync." });
+      return;
+    }
+
+    setBulkProgress({ done: 0, total: syncable.length });
+    let done = 0;
+    const errors: string[] = [];
+
+    for (const f of syncable) {
+      setSyncing(f.id);
+      const res = await fetch("/api/admin/sharepoint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId: f.id, fileName: f.name, fileUrl: f.webUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) errors.push(`${f.name}: ${data.error ?? "failed"}`);
+      done++;
+      setBulkProgress({ done, total: syncable.length });
+    }
+
+    setSyncing(null);
+    setBulkProgress(null);
+    loadKB();
+
+    if (errors.length) {
+      setMsg({ type: "err", text: `Synced ${done - errors.length}/${syncable.length} files. Errors: ${errors.join("; ")}` });
+    } else {
+      setMsg({ type: "ok", text: `Successfully synced ${done} file${done !== 1 ? "s" : ""} into the knowledge base.` });
+    }
   }
 
   async function syncFile(file: SPFile) {
@@ -149,14 +191,25 @@ export default function AdminDashboard({ adminEmail }: Props) {
               <FolderOpen className="h-5 w-5 text-gold-400" />
               <h2 className="text-lg font-bold">SharePoint Knowledge Base</h2>
             </div>
-            <button
-              onClick={loadSharePoint}
-              disabled={loadingSP}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-300 transition-colors disabled:opacity-50"
-            >
-              {loadingSP ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Browse Folder
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => loadSharePoint()}
+                disabled={loadingSP || !!bulkProgress}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-300 transition-colors disabled:opacity-50"
+              >
+                {loadingSP ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Browse
+              </button>
+              <button
+                onClick={browseAndSyncAll}
+                disabled={loadingSP || !!bulkProgress}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-400 hover:bg-gold-300 text-slate-900 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {bulkProgress
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Syncing {bulkProgress.done}/{bulkProgress.total}…</>
+                  : <><RefreshCw className="h-4 w-4" /> Browse &amp; Sync All</>}
+              </button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 text-sm text-slate-400 mb-4">
