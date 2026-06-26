@@ -59,16 +59,16 @@ function colJson<T>(item: BoardItem, id: string): T | null {
 
 export async function findPartnerByEmail(email: string): Promise<Partner | null> {
   const data = await gql<{ boards: { items_page: { items: BoardItem[] } }[] }>(
-    `query ($boardId: ID!, $email: CompareValue!) {
+    `query ($boardId: ID!, $email: [CompareValue!]!) {
        boards(ids: [$boardId]) {
          items_page(limit: 10, query_params: {
-           rules: [{ column_id: "email_mm4pmxvq", compare_value: [$email] }]
+           rules: [{ column_id: "email_mm4pmxvq", compare_value: $email }]
          }) {
            items { id name column_values { id text value } }
          }
        }
      }`,
-    { boardId: env("MONDAY_PARTNERS_BOARD_ID"), email },
+    { boardId: env("MONDAY_PARTNERS_BOARD_ID"), email: [email] },
   );
 
   const items = data.boards[0]?.items_page?.items ?? [];
