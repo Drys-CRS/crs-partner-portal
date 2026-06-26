@@ -1,15 +1,15 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-
-const FROM = process.env.RESEND_FROM_EMAIL ?? "CRS Partner Portal <portal@cyberretaliator.com>";
+// Lazy init — avoids "Missing API key" crash during Next.js build-time static analysis
+const client = () => new Resend(process.env.RESEND_API_KEY!);
+const FROM = () => process.env.RESEND_FROM_EMAIL ?? "CRS Partner Portal <portal@cyberretaliator.com>";
 
 export async function sendMagicLink(toEmail: string, name: string, token: string): Promise<void> {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const link = `${base}/portal?token=${token}`;
 
-  await resend.emails.send({
-    from: FROM,
+  await client().emails.send({
+    from: FROM(),
     to: toEmail,
     subject: "Your CRS Partner Portal Login Link",
     html: `
@@ -29,8 +29,8 @@ export async function sendMagicLink(toEmail: string, name: string, token: string
 }
 
 export async function sendApplicationConfirmation(toEmail: string, name: string): Promise<void> {
-  await resend.emails.send({
-    from: FROM,
+  await client().emails.send({
+    from: FROM(),
     to: toEmail,
     subject: "We received your CRS Partner Portal application",
     html: `
@@ -56,8 +56,8 @@ export async function sendAdminApplicationNotification(
   const adminEmail = process.env.ADMIN_EMAIL ?? "portal@cyberretaliator.com";
   const boardUrl = "https://cyberretaliatorsolutions-crs.monday.com/boards/18419462512";
 
-  await resend.emails.send({
-    from: FROM,
+  await client().emails.send({
+    from: FROM(),
     to: adminEmail,
     subject: `New partner application: ${name} (${company})`,
     html: `
