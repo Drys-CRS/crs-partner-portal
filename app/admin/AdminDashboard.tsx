@@ -66,9 +66,15 @@ export default function AdminDashboard({ adminEmail }: Props) {
     const files = await loadSharePoint();
     if (!files) return;
 
-    const syncable = files.filter(f => f.syncable);
+    // Refresh KB list to get current synced URLs
+    const kbRes = await fetch("/api/admin/kb");
+    const currentKB: KBEntry[] = kbRes.ok ? await kbRes.json() : kbEntries;
+    if (kbRes.ok) setKBEntries(currentKB);
+    const syncedUrls = new Set(currentKB.map(e => e.source_url).filter(Boolean));
+
+    const syncable = files.filter(f => f.syncable && !syncedUrls.has(f.webUrl));
     if (!syncable.length) {
-      setMsg({ type: "err", text: "No supported files found to sync." });
+      setMsg({ type: "ok", text: "All supported files are already synced — nothing to do." });
       return;
     }
 
@@ -226,32 +232,44 @@ export default function AdminDashboard({ adminEmail }: Props) {
 
           {spFiles.length > 0 && (
             <div className="space-y-2">
-              {spFiles.map(f => (
-                <div key={f.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="h-4 w-4 text-slate-500 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{f.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{f.folder} · {(f.size / 1024).toFixed(1)} KB · {new Date(f.lastModified).toLocaleDateString()}</p>
+              {(() => {
+                const syncedUrls = new Set(kbEntries.map(e => e.source_url).filter(Boolean));
+                return spFiles.map(f => {
+                  const alreadySynced = syncedUrls.has(f.webUrl);
+                  return (
+                  <div key={f.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-slate-500 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{f.name}</p>
+                        <p className="text-xs text-slate-500 truncate">{f.folder} · {(f.size / 1024).toFixed(1)} KB · {new Date(f.lastModified).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {alreadySynced ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-800 text-emerald-400 text-xs font-medium">
+                          <CheckCircle2 className="h-3 w-3" /> Synced
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => syncFile(f)}
+                          disabled={!f.syncable || syncing === f.id}
+                          title={f.reason}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-400/20 hover:bg-gold-400/30 text-gold-400 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {syncing === f.id
+                            ? <><Loader2 className="h-3 w-3 animate-spin" /> Syncing…</>
+                            : f.syncable ? "Sync to KB" : "Not supported"}
+                        </button>
+                      )}
+                      {!f.syncable && f.reason && (
+                        <p className="text-xs text-slate-600 mt-0.5 max-w-[160px] leading-tight">{f.reason}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <button
-                      onClick={() => syncFile(f)}
-                      disabled={!f.syncable || syncing === f.id}
-                      title={f.reason}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-400/20 hover:bg-gold-400/30 text-gold-400 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {syncing === f.id
-                        ? <><Loader2 className="h-3 w-3 animate-spin" /> Syncing…</>
-                        : f.syncable ? "Sync to KB" : "Not supported"}
-                    </button>
-                    {!f.syncable && f.reason && (
-                      <p className="text-xs text-slate-600 mt-0.5 max-w-[160px] leading-tight">{f.reason}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
           )}
         </section>
