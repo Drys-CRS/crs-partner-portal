@@ -22,6 +22,7 @@ type SPFile = {
   webUrl: string;
   lastModified: string;
   syncable: boolean;
+  reason?: string;
 };
 
 type Props = { adminEmail: string };
@@ -180,15 +181,21 @@ export default function AdminDashboard({ adminEmail }: Props) {
                       <p className="text-xs text-slate-500">{(f.size / 1024).toFixed(1)} KB · {new Date(f.lastModified).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => syncFile(f)}
-                    disabled={!f.syncable || syncing === f.id}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-400/20 hover:bg-gold-400/30 text-gold-400 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {syncing === f.id
-                      ? <><Loader2 className="h-3 w-3 animate-spin" /> Syncing…</>
-                      : f.syncable ? "Sync to KB" : "Not supported"}
-                  </button>
+                  <div className="shrink-0 text-right">
+                    <button
+                      onClick={() => syncFile(f)}
+                      disabled={!f.syncable || syncing === f.id}
+                      title={f.reason}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-400/20 hover:bg-gold-400/30 text-gold-400 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {syncing === f.id
+                        ? <><Loader2 className="h-3 w-3 animate-spin" /> Syncing…</>
+                        : f.syncable ? "Sync to KB" : "Not supported"}
+                    </button>
+                    {!f.syncable && f.reason && (
+                      <p className="text-xs text-slate-600 mt-0.5 max-w-[160px] leading-tight">{f.reason}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
