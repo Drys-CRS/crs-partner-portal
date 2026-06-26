@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findPartnerByEmail } from "@/lib/monday";
 import { signToken } from "@/lib/auth";
-import { sendMagicLink } from "@/lib/sendgrid";
+import { sendMagicLink } from "@/lib/resend";
 
 export const runtime = "nodejs";
 
