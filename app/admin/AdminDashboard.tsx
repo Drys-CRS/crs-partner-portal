@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Database, RefreshCw, Plus, Trash2, Loader2, LogOut,
-  FolderOpen, FileText, CheckCircle2, AlertCircle, BookOpen,
+  FolderOpen, FileText, CheckCircle2, AlertCircle, BookOpen, Globe,
 } from "lucide-react";
 
 type KBEntry = {
@@ -26,15 +26,26 @@ type SPFile = {
   reason?: string;
 };
 
+type VendorSiteItem = {
+  id: string;
+  title: string;
+  group: string;
+  url: string;
+};
+
 type Props = { adminEmail: string };
 
 export default function AdminDashboard({ adminEmail }: Props) {
   const [kbEntries, setKBEntries] = useState<KBEntry[]>([]);
   const [spFiles, setSPFiles] = useState<SPFile[]>([]);
+  const [vendorItems, setVendorItems] = useState<VendorSiteItem[]>([]);
   const [loadingKB, setLoadingKB] = useState(true);
   const [loadingSP, setLoadingSP] = useState(false);
+  const [loadingVendors, setLoadingVendors] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncingVendor, setSyncingVendor] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [vendorBulkProgress, setVendorBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [newEntry, setNewEntry] = useState({ name: "", content: "" });
   const [addingEntry, setAddingEntry] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -122,6 +133,73 @@ export default function AdminDashboard({ adminEmail }: Props) {
       setMsg({ type: "err", text: data.error ?? "Sync failed." });
     }
     setSyncing(null);
+  }
+
+  async function loadVendorSites() {
+    setLoadingVendors(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/vendor-sites");
+    const data = await res.json();
+    if (res.ok) setVendorItems(data.items ?? []);
+    else setMsg({ type: "err", text: data.error ?? "Failed to load vendor sites." });
+    setLoadingVendors(false);
+    return res.ok ? (data.items ?? []) as VendorSiteItem[] : null;
+  }
+
+  async function syncVendorSite(item: VendorSiteItem) {
+    setSyncingVendor(item.id);
+    setMsg(null);
+    const res = await fetch("/api/admin/vendor-sites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: item.title, group: item.group, url: item.url }),
+    });
+    const data = await res.json();
+    if (res.ok) { setMsg({ type: "ok", text: `Synced "${item.title}" into knowledge base.` }); loadKB(); }
+    else setMsg({ type: "err", text: data.error ?? "Sync failed." });
+    setSyncingVendor(null);
+  }
+
+  async function syncAllVendorSites() {
+    setMsg(null);
+    setVendorBulkProgress(null);
+    const items = await loadVendorSites();
+    if (!items) return;
+
+    const kbRes = await fetch("/api/admin/kb");
+    const currentKB: KBEntry[] = kbRes.ok ? await kbRes.json() : kbEntries;
+    if (kbRes.ok) setKBEntries(currentKB);
+    const syncedUrls = new Set(currentKB.map(e => e.source_url).filter(Boolean));
+
+    const pending = items.filter(i => !syncedUrls.has(i.url));
+    if (!pending.length) {
+      setMsg({ type: "ok", text: "All vendor sites are already synced — nothing to do." });
+      return;
+    }
+
+    setVendorBulkProgress({ done: 0, total: pending.length });
+    let done = 0;
+    const errors: string[] = [];
+
+    for (const item of pending) {
+      setSyncingVendor(item.id);
+      const res = await fetch("/api/admin/vendor-sites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: item.title, group: item.group, url: item.url }),
+      });
+      const data = await res.json();
+      if (!res.ok) errors.push(`${item.title}: ${data.error ?? "failed"}`);
+      done++;
+      setVendorBulkProgress({ done, total: pending.length });
+    }
+
+    setSyncingVendor(null);
+    setVendorBulkProgress(null);
+    loadKB();
+
+    if (errors.length) setMsg({ type: "err", text: `Synced ${done - errors.length}/${pending.length}. Errors: ${errors.join("; ")}` });
+    else setMsg({ type: "ok", text: `Successfully synced ${done} vendor site${done !== 1 ? "s" : ""} into the knowledge base.` });
   }
 
   async function addEntry(e: React.FormEvent) {
@@ -267,6 +345,78 @@ export default function AdminDashboard({ adminEmail }: Props) {
                       )}
                     </div>
                   </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
+        </section>
+
+        {/* ── Vendor Sites ─────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-gold-400" />
+              <h2 className="text-lg font-bold">Vendor Sites</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={loadVendorSites}
+                disabled={loadingVendors || !!vendorBulkProgress}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-300 transition-colors disabled:opacity-50"
+              >
+                {loadingVendors ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Browse
+              </button>
+              <button
+                onClick={syncAllVendorSites}
+                disabled={loadingVendors || !!vendorBulkProgress}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-400 hover:bg-gold-300 text-slate-900 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {vendorBulkProgress
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Syncing {vendorBulkProgress.done}/{vendorBulkProgress.total}…</>
+                  : <><RefreshCw className="h-4 w-4" /> Browse &amp; Sync All</>}
+              </button>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-500 mb-4">
+            Fetches the linked website for each solution on your Monday.com content board and indexes the page text into the knowledge base.
+          </p>
+
+          {vendorItems.length > 0 && (
+            <div className="space-y-2">
+              {(() => {
+                const syncedUrls = new Set(kbEntries.map(e => e.source_url).filter(Boolean));
+                return vendorItems.map(item => {
+                  const alreadySynced = syncedUrls.has(item.url);
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Globe className="h-4 w-4 text-slate-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{item.title}</p>
+                          <p className="text-xs text-slate-500 truncate">{item.group} · {item.url}</p>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {alreadySynced ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-800 text-emerald-400 text-xs font-medium">
+                            <CheckCircle2 className="h-3 w-3" /> Synced
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => syncVendorSite(item)}
+                            disabled={syncingVendor === item.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-400/20 hover:bg-gold-400/30 text-gold-400 text-xs font-medium transition-colors disabled:opacity-40"
+                          >
+                            {syncingVendor === item.id
+                              ? <><Loader2 className="h-3 w-3 animate-spin" /> Syncing…</>
+                              : "Sync to KB"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   );
                 });
               })()}
