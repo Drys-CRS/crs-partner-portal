@@ -23,19 +23,19 @@ export async function GET(req: NextRequest) {
     },
   };
 
-  // Test Supabase DB connection
+  // Test Supabase DB connection via pooler (same config as lib/auth.ts)
   try {
     const pool = new pg.Pool({
-      host: "db.gstbkgkslqqqjfvghoxy.supabase.co",
+      host: "aws-0-eu-west-1.pooler.supabase.com",
       port: 5432,
       database: "postgres",
-      user: "postgres",
+      user: "postgres.gstbkgkslqqqjfvghoxy",
       password: process.env.SUPABASE_DB_PASSWORD,
       ssl: { rejectUnauthorized: false },
     });
     await pool.query("SELECT 1");
     await pool.end();
-    results.db = "OK";
+    results.db = "OK (pooler)";
   } catch (e: unknown) {
     results.db = `FAIL: ${(e as Error).message}`;
   }
