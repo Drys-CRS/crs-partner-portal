@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@vercel/speed-insights": "^2.0.0",
     "better-auth": "^1.6.21",

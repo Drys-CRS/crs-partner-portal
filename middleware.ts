@@ -4,7 +4,9 @@ import { getSessionCookie } from "better-auth/cookies";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith("/portal")) return NextResponse.next();
+  if (!pathname.startsWith("/portal") && !pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
 
   const sessionCookie = getSessionCookie(request);
 
@@ -19,5 +21,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/portal/:path*"],
+  matcher: ["/portal/:path*", "/admin/:path*", "/admin"],
 };
