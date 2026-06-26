@@ -71,11 +71,12 @@ export async function findPartnerByEmail(email: string): Promise<Partner | null>
     { boardId: env("MONDAY_PARTNERS_BOARD_ID"), email },
   );
 
-  const item = data.boards[0]?.items_page?.items?.[0];
+  const items = data.boards[0]?.items_page?.items ?? [];
+  // Pick the first item that has a valid tier (skips duplicates/incomplete rows)
+  const item = items.find((i) => ["Gold", "Silver", "Bronze"].includes(colValue(i, "color_mm4pv7j2")));
   if (!item) return null;
 
   const tier = colValue(item, "color_mm4pv7j2");
-  if (!["Gold", "Silver", "Bronze"].includes(tier)) return null;
 
   return {
     id: item.id,
