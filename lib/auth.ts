@@ -23,7 +23,10 @@ pool.on("error", (err) => console.error("[auth] pg pool error:", err.message));
 export const auth = betterAuth({
   database: pool,
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: [process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"],
+  trustedOrigins: [
+    process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+    "https://crs-partner-portal.vercel.app",
+  ],
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
