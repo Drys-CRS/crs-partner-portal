@@ -3,27 +3,9 @@ import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getContent } from "@/lib/monday";
 import pool from "@/lib/db";
+import FirecrawlApp from "firecrawl";
 
 export const runtime = "nodejs";
-
-function extractText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<nav[\s\S]*?<\/nav>/gi, "")
-    .replace(/<footer[\s\S]*?<\/footer>/gi, "")
-    .replace(/<header[\s\S]*?<\/header>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s{2,}/g, " ")
-    .trim()
-    .slice(0, 15000);
-}
 
 export type VendorSiteItem = {
   id: string;
@@ -59,22 +41,18 @@ export async function POST(req: NextRequest) {
   const { title, group, url } = await req.json().catch(() => ({}));
   if (!url || !title) return NextResponse.json({ error: "url and title required" }, { status: 400 });
 
-  let html: string;
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "FIRECRAWL_API_KEY is not configured." }, { status: 503 });
+
+  let content: string;
   try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; CRS-KB-Bot/1.0)",
-        Accept: "text/html,*/*",
-      },
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    html = await res.text();
+    const firecrawl = new FirecrawlApp({ apiKey });
+    const result = await firecrawl.scrapeUrl(url, { formats: ["markdown"] });
+    content = (result.markdown ?? "").slice(0, 15000).trim();
   } catch (e: unknown) {
-    return NextResponse.json({ error: `Fetch failed: ${(e as Error).message}` }, { status: 502 });
+    return NextResponse.json({ error: `Firecrawl error: ${(e as Error).message}` }, { status: 502 });
   }
 
-  const content = extractText(html);
   if (!content) return NextResponse.json({ error: "No text extracted from page." }, { status: 400 });
 
   await pool.query(
