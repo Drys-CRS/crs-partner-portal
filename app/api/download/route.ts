@@ -17,7 +17,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "invalid url" }, { status: 400 });
   }
 
-  const upstream = await fetch(decoded);
+  // Monday.com private/CDN URLs require the API key as authorization
+  const isMondayUrl = /monday\.com|files-monday-com/i.test(decoded);
+  const fetchHeaders: Record<string, string> = {};
+  if (isMondayUrl && process.env.MONDAY_API_KEY) {
+    fetchHeaders["Authorization"] = process.env.MONDAY_API_KEY;
+  }
+
+  const upstream = await fetch(decoded, { headers: fetchHeaders });
   if (!upstream.ok) {
     return NextResponse.json({ error: "upstream fetch failed" }, { status: 502 });
   }

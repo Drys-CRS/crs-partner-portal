@@ -31,7 +31,12 @@ export type ContentItem = {
   documentName?: string;
 };
 
-type BoardItem = { id: string; name: string; column_values: { id: string; text: string; value: string }[] };
+type BoardItem = {
+  id: string;
+  name: string;
+  column_values: { id: string; text: string; value: string }[];
+  assets?: { id: string; public_url: string; name: string }[];
+};
 
 // Asserts env var is set — undefined silently drops from JSON.stringify, causing Monday.com to
 // report "invalid type for variable" instead of a clear missing-variable error.
@@ -98,7 +103,12 @@ export async function getContent(): Promise<ContentItem[]> {
          groups {
            title
            items_page(limit: 100) {
-             items { id name column_values { id text value } }
+             items {
+               id
+               name
+               column_values { id text value }
+               assets { id public_url name }
+             }
            }
          }
        }
@@ -106,26 +116,37 @@ export async function getContent(): Promise<ContentItem[]> {
     { boardId: env("MONDAY_CONTENT_BOARD_ID") },
   );
 
-  type FileCol = { files?: { name: string; url: string }[] };
+  type FileCol = { files?: { name: string; url: string; urlPrivate?: string }[] };
   const results: ContentItem[] = [];
 
   for (const group of data.boards[0]?.groups ?? []) {
     for (const item of group.items_page?.items ?? []) {
+      // Assets query is the most reliable source for uploaded files
+      const firstAsset = item.assets?.[0];
+
+      // Fall back to parsing the file column value JSON
       const fileCol = colJson<FileCol>(item, "file_mm4p4had");
       const firstFile = fileCol?.files?.[0];
+
+      // Use asset public_url first, then S3 url from column value
+      const documentUrl = firstAsset?.public_url || firstFile?.url || undefined;
+      const documentName = firstAsset?.name || firstFile?.name || undefined;
+
+      // Parse link column
       const linkRaw = item.column_values.find((c) => c.id === "link_mm4pae59")?.value;
       let linkUrl = "";
       if (linkRaw && linkRaw !== "null") {
         try { linkUrl = (JSON.parse(linkRaw) as { url?: string }).url ?? ""; } catch { /**/ }
       }
+
       results.push({
         id: item.id,
         title: item.name,
         group: group.title,
         description: colValue(item, "long_text_mm4px22x"),
         content: linkUrl,
-        documentUrl: firstFile?.url,
-        documentName: firstFile?.name,
+        documentUrl,
+        documentName,
       });
     }
   }
