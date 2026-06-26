@@ -1,35 +1,16 @@
 import { Resend } from "resend";
 
-// Lazy init — avoids "Missing API key" crash during Next.js build-time static analysis
 const client = () => new Resend(process.env.RESEND_API_KEY!);
 const FROM = () => process.env.RESEND_FROM_EMAIL ?? "CRS Partner Portal <portal@cyberretaliatorsolutions.com>";
 
-export async function sendMagicLink(toEmail: string, name: string, token: string): Promise<void> {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const link = `${base}/portal?token=${token}`;
-
-  await client().emails.send({
-    from: FROM(),
-    to: toEmail,
-    subject: "Your CRS Partner Portal Login Link",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <h2 style="color:#111">CRS Partner Portal</h2>
-        <p>Hi ${name},</p>
-        <p>Click the button below to log in. This link expires in <strong>15 minutes</strong>.</p>
-        <a href="${link}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">
-          Access Partner Portal
-        </a>
-        <p style="color:#6b7280;font-size:13px">If you didn't request this, you can ignore it.</p>
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-        <p style="color:#9ca3af;font-size:12px">Cyber Retaliator Solutions — Confidential Partner Access</p>
-      </div>
-    `,
-  });
+async function send(payload: Parameters<ReturnType<typeof client>["emails"]["send"]>[0]) {
+  const { data, error } = await client().emails.send(payload);
+  if (error) throw new Error(error.message ?? "Resend error");
+  return data;
 }
 
 export async function sendApplicationConfirmation(toEmail: string, name: string): Promise<void> {
-  await client().emails.send({
+  await send({
     from: FROM(),
     to: toEmail,
     subject: "We received your CRS Partner Portal application",
@@ -56,7 +37,7 @@ export async function sendAdminApplicationNotification(
   const adminEmail = process.env.ADMIN_EMAIL ?? "portal@cyberretaliatorsolutions.com";
   const boardUrl = "https://cyberretaliatorsolutions-crs.monday.com/boards/18419462512";
 
-  await client().emails.send({
+  await send({
     from: FROM(),
     to: adminEmail,
     subject: `New partner application: ${name} (${company})`,
@@ -73,10 +54,6 @@ export async function sendAdminApplicationNotification(
         <a href="${boardUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">
           Review in Monday.com
         </a>
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px">
-          To approve: add this partner to the Partners board with their tier (Gold/Silver/Bronze).<br/>
-          Then update the application Status to Approved.
-        </p>
       </div>
     `,
   });
