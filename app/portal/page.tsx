@@ -19,6 +19,7 @@ type ContentItem = {
   content: string;
   documentUrl?: string;
   documentName?: string;
+  logoUrl?: string;
 };
 
 const VAD_OFFERINGS = [
@@ -121,6 +122,12 @@ export default function PortalPage() {
   const activeSolution = SOLUTIONS.find(s => s.name === activeTab) ?? null;
   const tabContent = content.filter(c => c.group === activeTab);
 
+  // First logoUrl found per group
+  const groupLogos = content.reduce<Record<string, string>>((acc, c) => {
+    if (c.logoUrl && !acc[c.group]) acc[c.group] = c.logoUrl;
+    return acc;
+  }, {});
+
   return (
     <div className={theme === "dark" ? "dark" : ""}>
       <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
@@ -213,12 +220,18 @@ export default function PortalPage() {
                 <button
                   key={s.name}
                   onClick={() => selectTab(s.name)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors ${
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 transition-colors ${
                     activeTab === s.name
                       ? "bg-gold-400/20 text-gold-700 dark:text-gold-400 font-semibold"
                       : "text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
                   }`}
                 >
+                  {groupLogos[s.name] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={groupLogos[s.name]} alt="" className="h-5 w-5 rounded object-contain shrink-0" />
+                  ) : (
+                    <span className="h-5 w-5 rounded bg-gray-200 dark:bg-slate-700 shrink-0" />
+                  )}
                   <span className="truncate">{s.name}</span>
                 </button>
               ))}
@@ -374,19 +387,29 @@ export default function PortalPage() {
                   <div className="space-y-10">
                     {/* Solution Header */}
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-8">
-                      <div>
-                        <span className="inline-block text-xs font-semibold uppercase tracking-widest text-gold-600 dark:text-gold-400 mb-2">
-                          {activeSolution.category}
-                        </span>
-                        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-                          {activeSolution.name.replace(" (Coming Soon)", "")}
-                          {activeSolution.comingSoon && (
-                            <span className="text-sm font-normal bg-gray-100 dark:bg-slate-800 text-slate-500 px-2.5 py-1 rounded-full">
-                              Coming Soon
-                            </span>
-                          )}
-                        </h1>
-                        <p className="mt-1 text-lg text-gold-600 dark:text-gold-400/80 font-medium">{activeSolution.tagline}</p>
+                      <div className="flex items-start gap-4">
+                        {groupLogos[activeSolution.name] && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={groupLogos[activeSolution.name]}
+                            alt={`${activeSolution.name} logo`}
+                            className="h-12 w-12 rounded-xl object-contain bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-1.5 shrink-0"
+                          />
+                        )}
+                        <div>
+                          <span className="inline-block text-xs font-semibold uppercase tracking-widest text-gold-600 dark:text-gold-400 mb-2">
+                            {activeSolution.category}
+                          </span>
+                          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                            {activeSolution.name.replace(" (Coming Soon)", "")}
+                            {activeSolution.comingSoon && (
+                              <span className="text-sm font-normal bg-gray-100 dark:bg-slate-800 text-slate-500 px-2.5 py-1 rounded-full">
+                                Coming Soon
+                              </span>
+                            )}
+                          </h1>
+                          <p className="mt-1 text-lg text-gold-600 dark:text-gold-400/80 font-medium">{activeSolution.tagline}</p>
+                        </div>
                       </div>
                       <a
                         href={activeSolution.vendorUrl}

@@ -29,6 +29,7 @@ export type ContentItem = {
   content: string;
   documentUrl?: string;
   documentName?: string;
+  logoUrl?: string;
 };
 
 type BoardItem = {
@@ -139,6 +140,13 @@ export async function getContent(): Promise<ContentItem[]> {
         try { linkUrl = (JSON.parse(linkRaw) as { url?: string }).url ?? ""; } catch { /**/ }
       }
 
+      // Parse logo URL column (link_mm4p8rtz)
+      const logoRaw = item.column_values.find((c) => c.id === "link_mm4p8rtz")?.value;
+      let logoUrl: string | undefined;
+      if (logoRaw && logoRaw !== "null") {
+        try { logoUrl = (JSON.parse(logoRaw) as { url?: string }).url || undefined; } catch { /**/ }
+      }
+
       results.push({
         id: item.id,
         title: item.name,
@@ -147,6 +155,7 @@ export async function getContent(): Promise<ContentItem[]> {
         content: linkUrl,
         documentUrl,
         documentName,
+        logoUrl,
       });
     }
   }
