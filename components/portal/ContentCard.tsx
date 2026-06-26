@@ -1,50 +1,58 @@
-import { FileText, Video, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
+import { FileText, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
 
 type Props = {
   id: string;
   title: string;
-  type: string;
+  description: string;
   content: string;
   documentUrl?: string;
   documentName?: string;
 };
 
-const TYPE_ICON: Record<string, React.ReactNode> = {
-  Document: <FileText className="h-4 w-4" />,
-  Video:    <Video    className="h-4 w-4" />,
-  Link:     <LinkIcon className="h-4 w-4" />,
-};
-
-const isUrl = (s: string) => /^https?:\/\//.test(s);
-
-export default function ContentCard({ title, type, content, documentUrl, documentName }: Props) {
-  const icon = TYPE_ICON[type] ?? <FileText className="h-4 w-4" />;
+export default function ContentCard({ title, description, content, documentUrl, documentName }: Props) {
+  const isLink = !documentUrl && content;
+  const icon = documentUrl
+    ? <FileText className="h-4 w-4 shrink-0" />
+    : <LinkIcon className="h-4 w-4 shrink-0" />;
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5 flex flex-col gap-3 hover:border-slate-600 transition-colors">
-      <div className="flex items-center gap-2 text-slate-300">
+    <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5 flex flex-col gap-3 hover:border-amber-700/50 transition-colors">
+      <div className="flex items-center gap-2 text-amber-500/80">
         {icon}
-        <span className="text-xs font-semibold uppercase tracking-wider">{type}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider">
+          {documentUrl ? "Document" : "Link"}
+        </span>
       </div>
 
       <h3 className="font-semibold text-white leading-snug">{title}</h3>
 
-      {isUrl(content) ? (
-        <a href={content} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 transition-colors">
-          Open resource <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      ) : content ? (
-        <p className="text-sm text-slate-400 leading-relaxed line-clamp-4">{content}</p>
-      ) : null}
-
-      {documentUrl && (
-        <a href={documentUrl} target="_blank" rel="noopener noreferrer" download={documentName}
-          className="inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 transition-colors mt-auto pt-1 border-t border-slate-700">
-          <Download className="h-3.5 w-3.5" />
-          {documentName ?? "Download document"}
-        </a>
+      {description && (
+        <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">{description}</p>
       )}
+
+      <div className="mt-auto pt-3 border-t border-slate-700/60">
+        {documentUrl ? (
+          <a
+            href={documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={documentName}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download
+          </a>
+        ) : isLink ? (
+          <a
+            href={content}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            Visit <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : null}
+      </div>
     </div>
   );
 }

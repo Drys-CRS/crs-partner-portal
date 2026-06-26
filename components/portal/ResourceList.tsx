@@ -3,7 +3,8 @@ import ContentCard from "./ContentCard";
 type ContentItem = {
   id: string;
   title: string;
-  type: string;
+  group: string;
+  description: string;
   content: string;
   documentUrl?: string;
   documentName?: string;
@@ -14,8 +15,11 @@ type Props = { items: ContentItem[] };
 export default function ResourceList({ items }: Props) {
   if (!items.length) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-6 py-10 text-center">
-        <p className="text-slate-500">No partner content has been added yet.</p>
+      <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 px-6 py-10 text-center">
+        <p className="text-slate-500 text-sm">No resources have been added for this solution yet.</p>
+        <p className="text-slate-600 text-xs mt-1">
+          Add items to this group in the Monday.com Content board to display them here.
+        </p>
       </div>
     );
   }

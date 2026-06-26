@@ -24,7 +24,8 @@ export type Partner = {
 export type ContentItem = {
   id: string;
   title: string;
-  type: string;
+  group: string;
+  description: string;
   content: string;
   documentUrl?: string;
   documentName?: string;
@@ -84,15 +85,21 @@ export async function findPartnerByEmail(email: string): Promise<Partner | null>
 
 // ── Content ───────────────────────────────────────────────────────────────────
 // Column IDs on board 18419459740:
-//   color_mm4pwep9  → Type         (labels: Document / Video / Link)
-//   link_mm4pae59   → Content URL
+//   link_mm4pae59     → Content URL  (for link-type items)
+//   file_mm4p4had     → Document     (uploaded files)
+//   long_text_mm4px22x → Description (shown in portal card)
 
 export async function getContent(): Promise<ContentItem[]> {
-  const data = await gql<{ boards: { items_page: { items: BoardItem[] } }[] }>(
+  const data = await gql<{
+    boards: { groups: { title: string; items_page: { items: BoardItem[] } }[] }[];
+  }>(
     `query ($boardId: ID!) {
        boards(ids: [$boardId]) {
-         items_page(limit: 100) {
-           items { id name column_values { id text value } }
+         groups {
+           title
+           items_page(limit: 100) {
+             items { id name column_values { id text value } }
+           }
          }
        }
      }`,
@@ -100,19 +107,30 @@ export async function getContent(): Promise<ContentItem[]> {
   );
 
   type FileCol = { files?: { name: string; url: string }[] };
+  const results: ContentItem[] = [];
 
-  return (data.boards[0]?.items_page?.items ?? []).map((item) => {
-    const fileCol = colJson<FileCol>(item, "file_mm4p4had");
-    const firstFile = fileCol?.files?.[0];
-    return {
-      id: item.id,
-      title: item.name,
-      type: colValue(item, "color_mm4pwep9"),
-      content: colValue(item, "link_mm4pae59"),
-      documentUrl: firstFile?.url,
-      documentName: firstFile?.name,
-    };
-  });
+  for (const group of data.boards[0]?.groups ?? []) {
+    for (const item of group.items_page?.items ?? []) {
+      const fileCol = colJson<FileCol>(item, "file_mm4p4had");
+      const firstFile = fileCol?.files?.[0];
+      const linkRaw = item.column_values.find((c) => c.id === "link_mm4pae59")?.value;
+      let linkUrl = "";
+      if (linkRaw && linkRaw !== "null") {
+        try { linkUrl = (JSON.parse(linkRaw) as { url?: string }).url ?? ""; } catch { /**/ }
+      }
+      results.push({
+        id: item.id,
+        title: item.name,
+        group: group.title,
+        description: colValue(item, "long_text_mm4px22x"),
+        content: linkUrl,
+        documentUrl: firstFile?.url,
+        documentName: firstFile?.name,
+      });
+    }
+  }
+
+  return results;
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────
