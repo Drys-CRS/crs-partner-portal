@@ -1,15 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import ResourceList from "@/components/portal/ResourceList";
-import { LogOut, ShieldCheck, Loader2 } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 
 type User = { email: string; name: string; tier: string };
 type ContentItem = { id: string; title: string; type: string; content: string; requiredTier: string };
 
 const TIER_COLOURS: Record<string, string> = {
-  Gold:   "bg-yellow-100 text-yellow-800 border-yellow-300",
-  Silver: "bg-slate-100  text-slate-700  border-slate-300",
-  Bronze: "bg-orange-100 text-orange-800 border-orange-300",
+  Gold:   "bg-amber-900/40 text-amber-300 border-amber-700",
+  Silver: "bg-slate-700/40  text-slate-300  border-slate-600",
+  Bronze: "bg-orange-900/40 text-orange-300 border-orange-700",
 };
 
 export default function PortalPage() {
@@ -18,7 +19,6 @@ export default function PortalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
 
-  // Contact form
   const [form, setForm]       = useState({ name: "", email: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent]       = useState(false);
@@ -50,7 +50,7 @@ export default function PortalPage() {
     window.location.href = "/login";
   }
 
-  const tierColour = TIER_COLOURS[user?.tier ?? ""] ?? "bg-slate-100 text-slate-700 border-slate-300";
+  const tierColour = TIER_COLOURS[user?.tier ?? ""] ?? "bg-slate-700/40 text-slate-300 border-slate-600";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -58,8 +58,8 @@ export default function PortalPage() {
       <header className="border-b border-slate-800 bg-slate-900">
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ShieldCheck className="h-6 w-6 text-teal-400" />
-            <span className="font-bold text-lg tracking-tight">CRS Partner Portal</span>
+            <Image src="/crs-logo.png" alt="CRS" width={40} height={40} className="h-9 w-auto" />
+            <span className="font-bold text-lg tracking-tight">Partner Portal</span>
           </div>
           <div className="flex items-center gap-4">
             {user && (
@@ -84,7 +84,7 @@ export default function PortalPage() {
           <div>
             <h1 className="text-2xl font-bold">Welcome back{user.name ? `, ${user.name}` : ""}</h1>
             <p className="mt-1 text-slate-400 text-sm">
-              You have access to <strong className="text-slate-200">{user.tier}</strong>-tier content and above.
+              You have access to <strong className="text-amber-400">{user.tier}</strong>-tier content and above.
             </p>
           </div>
         )}
@@ -92,7 +92,7 @@ export default function PortalPage() {
         {/* Content */}
         {loading && (
           <div className="flex items-center gap-3 text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin" /> Loading your content…
+            <Loader2 className="h-5 w-5 animate-spin text-amber-400" /> Loading your content…
           </div>
         )}
         {error && <p className="text-rose-400">{error}</p>}
@@ -104,7 +104,7 @@ export default function PortalPage() {
           <p className="text-sm text-slate-400 mb-6">Need support or have a question for your account manager?</p>
 
           {sent ? (
-            <div className="rounded-xl bg-teal-900/40 border border-teal-700 px-5 py-4 text-teal-300 text-sm">
+            <div className="rounded-xl bg-amber-900/30 border border-amber-700 px-5 py-4 text-amber-300 text-sm">
               Message received — we&apos;ll be in touch shortly.
             </div>
           ) : (
@@ -113,25 +113,25 @@ export default function PortalPage() {
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Name</label>
                   <input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                    className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                    className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                     placeholder="Jane Smith" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Email</label>
                   <input required type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                    className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                    className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                     placeholder="jane@company.com" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Message</label>
                 <textarea required rows={4} value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
-                  className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none"
+                  className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 resize-none"
                   placeholder="How can we help?" />
               </div>
               {formErr && <p className="text-rose-400 text-sm">{formErr}</p>}
               <button type="submit" disabled={sending}
-                className="px-6 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="px-6 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {sending ? "Sending…" : "Send Message"}
               </button>
             </form>

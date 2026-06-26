@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { ShieldCheck, Loader2, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { Loader2, Mail, CheckCircle, AlertCircle } from "lucide-react";
 
 type State = "idle" | "loading" | "sent" | "error";
 
@@ -9,7 +10,6 @@ export default function LoginPage() {
   const [state, setState] = useState<State>("idle");
   const [errMsg, setErrMsg] = useState("");
 
-  // Show expired notice if redirected with ?error=expired
   const expired = typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("error") === "expired";
 
@@ -40,9 +40,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <ShieldCheck className="h-8 w-8 text-teal-400" />
-          <span className="text-xl font-bold text-white tracking-tight">CRS Partner Portal</span>
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <Image src="/crs-logo.png" alt="CRS" width={72} height={72} className="h-16 w-auto" />
+          <span className="text-lg font-bold text-white tracking-tight">Partner Portal</span>
         </div>
 
         {/* Card */}
@@ -57,14 +57,14 @@ export default function LoginPage() {
 
           {state === "sent" ? (
             <div className="text-center">
-              <CheckCircle className="h-12 w-12 text-teal-400 mx-auto mb-4" />
+              <CheckCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">Check your inbox</h2>
               <p className="text-sm text-slate-400 leading-relaxed">
                 We sent a login link to <strong className="text-slate-200">{email}</strong>.
                 It expires in 15 minutes.
               </p>
               <button onClick={() => { setState("idle"); setEmail(""); }}
-                className="mt-6 text-sm text-teal-400 hover:text-teal-300 underline underline-offset-2">
+                className="mt-6 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2">
                 Use a different email
               </button>
             </div>
@@ -87,7 +87,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="you@company.com"
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
                     />
                   </div>
                 </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={state === "loading" || !email.trim()}
-                  className="w-full py-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {state === "loading"
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>
@@ -115,7 +115,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-slate-600 mt-4">
           Not a partner yet?{" "}
-          <a href="/signup" className="text-slate-500 hover:text-slate-400 underline underline-offset-2">
+          <a href="/signup" className="text-amber-700 hover:text-amber-600 underline underline-offset-2">
             Apply for access
           </a>
         </p>

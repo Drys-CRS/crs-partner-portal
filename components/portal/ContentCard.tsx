@@ -44,7 +44,7 @@ export default function ContentCard({ title, type, content, requiredTier, docume
 
       {isUrl(content) ? (
         <a href={content} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors">
+          className="inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 transition-colors">
           Open resource <ExternalLink className="h-3.5 w-3.5" />
         </a>
       ) : content ? (
@@ -53,7 +53,7 @@ export default function ContentCard({ title, type, content, requiredTier, docume
 
       {documentUrl && (
         <a href={documentUrl} target="_blank" rel="noopener noreferrer" download={documentName}
-          className="inline-flex items-center gap-1.5 text-sm text-teal-400 hover:text-teal-300 transition-colors mt-auto pt-1 border-t border-slate-700">
+          className="inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 transition-colors mt-auto pt-1 border-t border-slate-700">
           <Download className="h-3.5 w-3.5" />
           {documentName ?? "Download document"}
         </a>
