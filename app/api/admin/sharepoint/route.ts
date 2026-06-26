@@ -42,13 +42,17 @@ async function getGraphToken(): Promise<string> {
 async function getSharePointSiteId(token: string, siteUrl: string): Promise<string> {
   const url = new URL(siteUrl);
   const hostname = url.hostname;
-  const sitePath = url.pathname; // e.g. /sites/crs
+  const sitePath = url.pathname; // e.g. /sites/CRSCyberSecurity
 
-  const res = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${hostname}:${sitePath}`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!res.ok) throw new Error("Could not resolve SharePoint site. Check SHAREPOINT_SITE_URL.");
+  const graphUrl = `https://graph.microsoft.com/v1.0/sites/${hostname}:${sitePath}`;
+  const res = await fetch(graphUrl, { headers: { Authorization: `Bearer ${token}` } });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const detail = err?.error?.message ?? err?.error?.code ?? `HTTP ${res.status}`;
+    throw new Error(`SharePoint site lookup failed (${detail}). Check SHAREPOINT_SITE_URL and that admin consent is granted for Sites.Read.All.`);
+  }
+
   const data = await res.json();
   return data.id as string;
 }
