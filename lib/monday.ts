@@ -34,6 +34,9 @@ export type ContentItem = {
 
 type BoardItem = { id: string; name: string; column_values: { id: string; text: string; value: string }[] };
 
+// Monday.com API 2024-10 requires board IDs as integers, not strings
+const bid = (envVar: string | undefined) => Number(envVar);
+
 function colValue(item: BoardItem, id: string): string {
   return item.column_values.find((c) => c.id === id)?.text ?? "";
 }
@@ -51,7 +54,7 @@ function colJson<T>(item: BoardItem, id: string): T | null {
 
 export async function findPartnerByEmail(email: string): Promise<Partner | null> {
   const data = await gql<{ boards: { items_page: { items: BoardItem[] } }[] }>(
-    `query ($boardId: ID!, $email: CompareValue!) {
+    `query ($boardId: Int!, $email: CompareValue!) {
        boards(ids: [$boardId]) {
          items_page(limit: 10, query_params: {
            rules: [{ column_id: "email_mm4pmxvq", compare_value: [$email] }]
@@ -60,7 +63,7 @@ export async function findPartnerByEmail(email: string): Promise<Partner | null>
          }
        }
      }`,
-    { boardId: process.env.MONDAY_PARTNERS_BOARD_ID, email },
+    { boardId: bid(process.env.MONDAY_PARTNERS_BOARD_ID), email },
   );
 
   const item = data.boards[0]?.items_page?.items?.[0];
@@ -87,14 +90,14 @@ const TIER_RANK: Record<string, number> = { Bronze: 1, Silver: 2, Gold: 3 };
 
 export async function getContentForTier(userTier: string): Promise<ContentItem[]> {
   const data = await gql<{ boards: { items_page: { items: BoardItem[] } }[] }>(
-    `query ($boardId: ID!) {
+    `query ($boardId: Int!) {
        boards(ids: [$boardId]) {
          items_page(limit: 100) {
            items { id name column_values { id text value } }
          }
        }
      }`,
-    { boardId: process.env.MONDAY_CONTENT_BOARD_ID },
+    { boardId: bid(process.env.MONDAY_CONTENT_BOARD_ID) },
   );
 
   const userRank = TIER_RANK[userTier] ?? 0;
@@ -132,10 +135,10 @@ export async function createSubmission(name: string, email: string, message: str
   });
 
   const data = await gql<{ create_item: { id: string } }>(
-    `mutation ($boardId: ID!, $name: String!, $colVals: JSON!) {
+    `mutation ($boardId: Int!, $name: String!, $colVals: JSON!) {
        create_item(board_id: $boardId, item_name: $name, column_values: $colVals) { id }
      }`,
-    { boardId: process.env.MONDAY_SUBMISSIONS_BOARD_ID, name, colVals },
+    { boardId: bid(process.env.MONDAY_SUBMISSIONS_BOARD_ID), name, colVals },
   );
 
   return data.create_item.id;
@@ -166,10 +169,10 @@ export async function createApplication(
   });
 
   const data = await gql<{ create_item: { id: string } }>(
-    `mutation ($boardId: ID!, $name: String!, $colVals: JSON!) {
+    `mutation ($boardId: Int!, $name: String!, $colVals: JSON!) {
        create_item(board_id: $boardId, item_name: $name, column_values: $colVals) { id }
      }`,
-    { boardId: process.env.MONDAY_APPLICATIONS_BOARD_ID, name, colVals },
+    { boardId: bid(process.env.MONDAY_APPLICATIONS_BOARD_ID), name, colVals },
   );
 
   return data.create_item.id;
