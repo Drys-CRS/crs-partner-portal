@@ -12,14 +12,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
   }
 
-  const partner = await findPartnerByEmail(email.toLowerCase().trim()).catch(() => null);
+  let partner;
+  try {
+    partner = await findPartnerByEmail(email.toLowerCase().trim());
+  } catch (err) {
+    console.error("[login] Monday.com lookup failed:", err);
+    return NextResponse.json({ error: "Failed to verify partner. Please try again." }, { status: 500 });
+  }
+
   if (!partner) {
-    // Return 200 to avoid email enumeration — client shows same message either way
+    // No matching partner with a valid tier — still return 200 to avoid enumeration
+    console.log("[login] No partner found for:", email);
     return NextResponse.json({ ok: true });
   }
 
-  const token = await signToken({ email: partner.email, tier: partner.tier, name: partner.name });
-  await sendMagicLink(partner.email, partner.name, token);
+  let token;
+  try {
+    token = await signToken({ email: partner.email, tier: partner.tier, name: partner.name });
+  } catch (err) {
+    console.error("[login] Token signing failed:", err);
+    return NextResponse.json({ error: "Authentication error. Please try again." }, { status: 500 });
+  }
+
+  try {
+    await sendMagicLink(partner.email, partner.name, token);
+  } catch (err) {
+    console.error("[login] Resend failed:", err);
+    return NextResponse.json({ error: "Failed to send login email. Please try again." }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
