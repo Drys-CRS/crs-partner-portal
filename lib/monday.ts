@@ -59,30 +59,31 @@ function colJson<T>(item: BoardItem, id: string): T | null {
 
 export async function findPartnerByEmail(email: string): Promise<Partner | null> {
   const data = await gql<{ boards: { items_page: { items: BoardItem[] } }[] }>(
-    `query ($boardId: ID!, $email: [CompareValue!]!) {
+    `query ($boardId: ID!) {
        boards(ids: [$boardId]) {
-         items_page(limit: 10, query_params: {
-           rules: [{ column_id: "email_mm4pmxvq", compare_value: $email }]
-         }) {
+         items_page(limit: 100) {
            items { id name column_values { id text value } }
          }
        }
      }`,
-    { boardId: env("MONDAY_PARTNERS_BOARD_ID"), email: [email] },
+    { boardId: env("MONDAY_PARTNERS_BOARD_ID") },
   );
 
+  const needle = email.toLowerCase().trim();
   const items = data.boards[0]?.items_page?.items ?? [];
-  // Pick the first item that has a valid tier (skips duplicates/incomplete rows)
-  const item = items.find((i) => ["Gold", "Silver", "Bronze"].includes(colValue(i, "color_mm4pv7j2")));
-  if (!item) return null;
 
-  const tier = colValue(item, "color_mm4pv7j2");
+  const item = items.find(
+    (i) =>
+      colValue(i, "email_mm4pmxvq").toLowerCase() === needle &&
+      ["Gold", "Silver", "Bronze"].includes(colValue(i, "color_mm4pv7j2")),
+  );
+  if (!item) return null;
 
   return {
     id: item.id,
     name: item.name,
     email: colValue(item, "email_mm4pmxvq"),
-    tier: tier as Partner["tier"],
+    tier: colValue(item, "color_mm4pv7j2") as Partner["tier"],
   };
 }
 
