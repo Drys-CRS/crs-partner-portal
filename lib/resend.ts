@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 // Lazy init — avoids "Missing API key" crash during Next.js build-time static analysis
 const client = () => new Resend(process.env.RESEND_API_KEY!);
-const FROM = () => process.env.RESEND_FROM_EMAIL ?? "CRS Partner Portal <portal@cyberretaliator.com>";
+const FROM = () => process.env.RESEND_FROM_EMAIL ?? "CRS Partner Portal <portal@cyberretaliatorsolutions.com>";
 
 export async function sendMagicLink(toEmail: string, name: string, token: string): Promise<void> {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
@@ -53,7 +53,7 @@ export async function sendAdminApplicationNotification(
   phone: string,
   message: string,
 ): Promise<void> {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "portal@cyberretaliator.com";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "portal@cyberretaliatorsolutions.com";
   const boardUrl = "https://cyberretaliatorsolutions-crs.monday.com/boards/18419462512";
 
   await client().emails.send({
