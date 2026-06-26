@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSubmission } from "@/lib/monday";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  // Must be an authenticated partner
-  const cookie = req.cookies.get(SESSION_COOKIE)?.value;
-  if (!cookie) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  try { await verifyToken(cookie); } catch {
-    return NextResponse.json({ error: "Session expired" }, { status: 401 });
-  }
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { name, email, message } = await req.json().catch(() => ({}));
   if (!name || !email || !message) {

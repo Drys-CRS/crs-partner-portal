@@ -40,7 +40,7 @@ export default function PortalPage() {
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/sign-out", { method: "POST" });
     window.location.href = "/login";
   }
 

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Loader2, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 type State = "idle" | "loading" | "sent" | "error";
 
@@ -10,28 +11,22 @@ export default function LoginPage() {
   const [state, setState] = useState<State>("idle");
   const [errMsg, setErrMsg] = useState("");
 
-  const expired = typeof window !== "undefined" &&
+  const expired =
+    typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("error") === "expired";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setState("loading");
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
-      });
-      if (res.ok) {
-        setState("sent");
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setErrMsg(d.error || "Something went wrong. Please try again.");
-        setState("error");
-      }
-    } catch {
-      setErrMsg("Network error — check your connection.");
+    const { error } = await authClient.signIn.magicLink({
+      email: email.trim().toLowerCase(),
+      callbackURL: "/portal",
+    });
+    if (error) {
+      setErrMsg(error.message || "Something went wrong. Please try again.");
       setState("error");
+    } else {
+      setState("sent");
     }
   }
 
@@ -63,8 +58,10 @@ export default function LoginPage() {
                 We sent a login link to <strong className="text-slate-200">{email}</strong>.
                 It expires in 15 minutes.
               </p>
-              <button onClick={() => { setState("idle"); setEmail(""); }}
-                className="mt-6 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              <button
+                onClick={() => { setState("idle"); setEmail(""); }}
+                className="mt-6 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2"
+              >
                 Use a different email
               </button>
             </div>
