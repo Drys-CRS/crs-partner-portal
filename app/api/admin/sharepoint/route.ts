@@ -79,14 +79,69 @@ async function getDriveId(token: string, siteId: string, driveName?: string): Pr
   return match.id;
 }
 
-// GET — list files in configured SharePoint folder
+type RawItem = {
+  id: string; name: string; size: number; webUrl: string;
+  lastModifiedDateTime: string; file?: object; folder?: object;
+};
+
+// Recursively collect all files under a folder item ID
+async function listFilesRecursive(
+  token: string,
+  siteId: string,
+  driveRef: string,
+  itemId: string,
+  folderPath: string,
+): Promise<SPFileItem[]> {
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${siteId}/${driveRef}/items/${itemId}/children?$select=id,name,size,webUrl,lastModifiedDateTime,file,folder`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) return [];
+
+  const data = await res.json();
+  const items = (data.value as RawItem[]);
+  const results: SPFileItem[] = [];
+
+  for (const item of items) {
+    if (item.folder) {
+      // Recurse into sub-folder
+      const children = await listFilesRecursive(token, siteId, driveRef, item.id, `${folderPath}/${item.name}`);
+      results.push(...children);
+    } else if (item.file) {
+      const ext = item.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
+      const syncable = TEXT_EXTENSIONS.includes(ext) || DOCX_EXTENSIONS.includes(ext);
+      const reason = UNSUPPORTED_EXTENSIONS.includes(ext)
+        ? "PDF/Excel/PowerPoint — paste content manually"
+        : syncable ? undefined : "Unknown format";
+      results.push({
+        id: item.id,
+        name: item.name,
+        folder: folderPath,
+        size: item.size,
+        webUrl: item.webUrl,
+        lastModified: item.lastModifiedDateTime,
+        syncable,
+        reason,
+      });
+    }
+  }
+
+  return results;
+}
+
+type SPFileItem = {
+  id: string; name: string; folder: string; size: number;
+  webUrl: string; lastModified: string; syncable: boolean; reason?: string;
+};
+
+// GET — recursively list all files under configured SharePoint folder
 export async function GET() {
   const admin = await requireAdmin(await headers());
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const siteUrl = process.env.SHAREPOINT_SITE_URL;
   const folderPath = process.env.SHAREPOINT_FOLDER_PATH;
-  const driveName = process.env.SHAREPOINT_DRIVE_NAME; // optional — document library name
+  const driveName = process.env.SHAREPOINT_DRIVE_NAME;
 
   if (!siteUrl || !folderPath) {
     return NextResponse.json({
@@ -96,61 +151,33 @@ export async function GET() {
   }
 
   let token: string;
-  try {
-    token = await getGraphToken();
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 503 });
-  }
+  try { token = await getGraphToken(); }
+  catch (e: unknown) { return NextResponse.json({ error: (e as Error).message }, { status: 503 }); }
 
   let siteId: string;
-  try {
-    siteId = await getSharePointSiteId(token, siteUrl);
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 503 });
-  }
+  try { siteId = await getSharePointSiteId(token, siteUrl); }
+  catch (e: unknown) { return NextResponse.json({ error: (e as Error).message }, { status: 503 }); }
 
   let driveRef: string;
   try {
     const driveId = await getDriveId(token, siteId, driveName);
     driveRef = driveId === "drive" ? "drive" : `drives/${driveId}`;
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 503 });
-  }
+  } catch (e: unknown) { return NextResponse.json({ error: (e as Error).message }, { status: 503 }); }
 
-  // List children of the folder — normalise path separators
+  // Resolve the root folder item ID
   const normPath = folderPath.replace(/\\/g, "/").replace(/^([^/])/, "/$1");
-  const listRes = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${siteId}/${driveRef}/root:${normPath}:/children?$select=id,name,size,webUrl,lastModifiedDateTime,file`,
+  const rootRes = await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${siteId}/${driveRef}/root:${normPath}?$select=id,name`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
-
-  if (!listRes.ok) {
-    const err = await listRes.json().catch(() => ({}));
-    return NextResponse.json({ error: err.error?.message ?? "Failed to list SharePoint folder." }, { status: 502 });
+  if (!rootRes.ok) {
+    const err = await rootRes.json().catch(() => ({}));
+    return NextResponse.json({ error: err.error?.message ?? "Failed to find SharePoint folder." }, { status: 502 });
   }
+  const rootItem = await rootRes.json();
 
-  const data = await listRes.json();
-  const files = (data.value as Array<{
-    id: string; name: string; size: number; webUrl: string;
-    lastModifiedDateTime: string; file?: object;
-  }>)
-    .filter(item => item.file) // only files, not sub-folders
-    .map(item => {
-      const ext = item.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
-      const syncable = TEXT_EXTENSIONS.includes(ext) || DOCX_EXTENSIONS.includes(ext);
-      const reason = UNSUPPORTED_EXTENSIONS.includes(ext)
-        ? "PDF/Excel/PowerPoint — paste content manually"
-        : syncable ? undefined : "Unknown format";
-      return {
-        id: item.id,
-        name: item.name,
-        size: item.size,
-        webUrl: item.webUrl,
-        lastModified: item.lastModifiedDateTime,
-        syncable,
-        reason,
-      };
-    });
+  // Recursively collect all files
+  const files = await listFilesRecursive(token, siteId, driveRef, rootItem.id, normPath);
 
   return NextResponse.json({ files });
 }

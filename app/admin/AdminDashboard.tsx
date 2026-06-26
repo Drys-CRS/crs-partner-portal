@@ -18,6 +18,7 @@ type KBEntry = {
 type SPFile = {
   id: string;
   name: string;
+  folder: string;
   size: number;
   webUrl: string;
   lastModified: string;
@@ -178,7 +179,7 @@ export default function AdminDashboard({ adminEmail }: Props) {
                     <FileText className="h-4 w-4 text-slate-500 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{f.name}</p>
-                      <p className="text-xs text-slate-500">{(f.size / 1024).toFixed(1)} KB · {new Date(f.lastModified).toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-500 truncate">{f.folder} · {(f.size / 1024).toFixed(1)} KB · {new Date(f.lastModified).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
