@@ -9,10 +9,19 @@ const FROM = () =>
   process.env.RESEND_FROM_EMAIL ??
   "CRS Partner Portal <portal@cyberretaliatorsolutions.com>";
 
+const pool = new pg.Pool({
+  host: "db.gstbkgkslqqqjfvghoxy.supabase.co",
+  port: 5432,
+  database: "postgres",
+  user: "postgres",
+  password: process.env.SUPABASE_DB_PASSWORD,
+  ssl: { rejectUnauthorized: false },
+});
+
+pool.on("error", (err) => console.error("[auth] pg pool error:", err.message));
+
 export const auth = betterAuth({
-  database: new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
+  database: pool,
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: [process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"],
   plugins: [
