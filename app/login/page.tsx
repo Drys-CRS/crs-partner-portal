@@ -113,7 +113,13 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">
+        <p className="text-center text-xs text-slate-600 mt-4">
+          Not a partner yet?{" "}
+          <a href="/signup" className="text-slate-500 hover:text-slate-400 underline underline-offset-2">
+            Apply for access
+          </a>
+        </p>
+        <p className="text-center text-xs text-slate-700 mt-2">
           Cyber Retaliator Solutions — Authorised Partners Only
         </p>
       </div>
