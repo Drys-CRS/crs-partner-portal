@@ -245,21 +245,10 @@ export async function POST(req: NextRequest) {
     if (!content) return NextResponse.json({ error: "Word document appears to be empty." }, { status: 400 });
 
   } else if (PDF_EXTENSIONS.includes(ext)) {
-    const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
-    const _warn = console.warn;
-    console.warn = (...a: unknown[]) => { if (typeof a[0] === "string" && a[0].startsWith("TT:")) return; _warn(...a); };
-    let pdfText = "";
-    try {
-      const result = await pdfParse(buffer);
-      pdfText = result.text;
-    } catch {
-      // Malformed XRef table, encrypted PDFs, or other structural corruption
-      return NextResponse.json({ error: "PDF is malformed or corrupted and cannot be parsed." }, { status: 400 });
-    } finally {
-      console.warn = _warn;
-    }
-    content = sanitize(pdfText);
-    if (!content) return NextResponse.json({ error: "PDF appears to have no extractable text (may be scanned image)." }, { status: 400 });
+    // Strategy 1: pdf-parse. Strategy 2: Gemini Vision for scanned/malformed PDFs.
+    const { extractPdfText } = await import("@/lib/pdfExtract");
+    content = await extractPdfText(buffer);
+    if (!content) return NextResponse.json({ error: "PDF has no extractable content even after AI analysis (blank or fully encrypted)." }, { status: 400 });
 
   } else {
     return NextResponse.json({

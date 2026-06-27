@@ -7,7 +7,7 @@ import mammoth from "mammoth";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-// ── Helpers (shared logic, mirrored from parent route) ───────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function sanitize(text: string): string {
   return text.replace(/\0/g, "").replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
@@ -16,18 +16,6 @@ function sanitize(text: string): string {
 const TEXT_EXTS = [".txt", ".md", ".csv"];
 const DOCX_EXTS = [".docx", ".doc"];
 const PDF_EXTS  = [".pdf"];
-
-// Patch console.warn once per module lifetime to suppress pdfjs-dist TT: noise
-let _warnPatched = false;
-function patchWarn() {
-  if (_warnPatched) return;
-  const orig = console.warn;
-  console.warn = (...a: unknown[]) => {
-    if (typeof a[0] === "string" && a[0].startsWith("TT:")) return;
-    orig(...a);
-  };
-  _warnPatched = true;
-}
 
 async function getGraphToken(): Promise<string> {
   const { AZURE_TENANT_ID: tid, AZURE_CLIENT_ID: cid, AZURE_CLIENT_SECRET: csec } = process.env;
@@ -84,20 +72,15 @@ async function processFile(file: FileReq, token: string, siteId: string, driveRe
       const result = await mammoth.extractRawText({ buffer });
       content = sanitize(result.value);
     } else if (PDF_EXTS.includes(ext)) {
-      patchWarn(); // suppress TT: warnings globally, safe across concurrent calls
-      const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
-      try {
-        content = sanitize((await pdfParse(buffer)).text);
-      } catch {
-        return { fileName: file.name, ok: false, skipped: true, error: "malformed or corrupted" };
-      }
+      const { extractPdfText } = await import("@/lib/pdfExtract");
+      content = await extractPdfText(buffer);
     }
   } catch (e: unknown) {
     return { fileName: file.name, ok: false, skipped: false, error: (e as Error).message };
   }
 
   if (!content) {
-    return { fileName: file.name, ok: false, skipped: true, error: "no extractable text" };
+    return { fileName: file.name, ok: false, skipped: true, error: "no extractable text after AI analysis" };
   }
 
   await pool.query(
