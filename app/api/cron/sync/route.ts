@@ -124,7 +124,10 @@ async function syncSharePoint(): Promise<{ synced: number; errors: string[] }> {
         content = sanitize(result.value);
       } else {
         const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
-        content = sanitize((await pdfParse(buffer)).text);
+        const _warn = console.warn;
+        console.warn = (...a: unknown[]) => { if (typeof a[0] === "string" && a[0].startsWith("TT:")) return; _warn(...a); };
+        const pdfResult = await pdfParse(buffer).finally(() => { console.warn = _warn; });
+        content = sanitize(pdfResult.text);
       }
 
       if (!content) continue;

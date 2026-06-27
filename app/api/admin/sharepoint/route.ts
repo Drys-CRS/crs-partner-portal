@@ -247,7 +247,10 @@ export async function POST(req: NextRequest) {
   } else if (PDF_EXTENSIONS.includes(ext)) {
     // Dynamic import avoids pdf-parse test-file read at module load time
     const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
-    const result = await pdfParse(buffer);
+    // pdfjs-dist emits "TT: undefined function: N" for TrueType font quirks — harmless, suppress it
+    const _warn = console.warn;
+    console.warn = (...a: unknown[]) => { if (typeof a[0] === "string" && a[0].startsWith("TT:")) return; _warn(...a); };
+    const result = await pdfParse(buffer).finally(() => { console.warn = _warn; });
     content = sanitize(result.text);
     if (!content) return NextResponse.json({ error: "PDF appears to have no extractable text (may be scanned image)." }, { status: 400 });
 
