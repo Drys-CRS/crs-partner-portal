@@ -17,10 +17,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "invalid url" }, { status: 400 });
   }
 
-  // Monday.com private/CDN URLs require the API key as authorization
+  // Pre-signed S3 URLs carry auth in query params (X-Amz-Signature).
+  // Adding an Authorization header alongside pre-signed auth causes AWS to reject with 400.
+  // Only inject the Monday API key for direct monday.com API URLs that are NOT pre-signed.
   const isMondayUrl = /monday\.com|files-monday-com/i.test(decoded);
+  const isPreSigned = /X-Amz-Signature/i.test(decoded);
   const fetchHeaders: Record<string, string> = {};
-  if (isMondayUrl && process.env.MONDAY_API_KEY) {
+  if (isMondayUrl && !isPreSigned && process.env.MONDAY_API_KEY) {
     fetchHeaders["Authorization"] = process.env.MONDAY_API_KEY;
   }
 
