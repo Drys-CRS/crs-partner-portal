@@ -245,13 +245,20 @@ export async function POST(req: NextRequest) {
     if (!content) return NextResponse.json({ error: "Word document appears to be empty." }, { status: 400 });
 
   } else if (PDF_EXTENSIONS.includes(ext)) {
-    // Dynamic import avoids pdf-parse test-file read at module load time
     const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
-    // pdfjs-dist emits "TT: undefined function: N" for TrueType font quirks — harmless, suppress it
     const _warn = console.warn;
     console.warn = (...a: unknown[]) => { if (typeof a[0] === "string" && a[0].startsWith("TT:")) return; _warn(...a); };
-    const result = await pdfParse(buffer).finally(() => { console.warn = _warn; });
-    content = sanitize(result.text);
+    let pdfText = "";
+    try {
+      const result = await pdfParse(buffer);
+      pdfText = result.text;
+    } catch {
+      // Malformed XRef table, encrypted PDFs, or other structural corruption
+      return NextResponse.json({ error: "PDF is malformed or corrupted and cannot be parsed." }, { status: 400 });
+    } finally {
+      console.warn = _warn;
+    }
+    content = sanitize(pdfText);
     if (!content) return NextResponse.json({ error: "PDF appears to have no extractable text (may be scanned image)." }, { status: 400 });
 
   } else {

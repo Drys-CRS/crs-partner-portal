@@ -126,8 +126,17 @@ async function syncSharePoint(): Promise<{ synced: number; errors: string[] }> {
         const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
         const _warn = console.warn;
         console.warn = (...a: unknown[]) => { if (typeof a[0] === "string" && a[0].startsWith("TT:")) return; _warn(...a); };
-        const pdfResult = await pdfParse(buffer).finally(() => { console.warn = _warn; });
-        content = sanitize(pdfResult.text);
+        let pdfText = "";
+        try {
+          pdfText = (await pdfParse(buffer)).text;
+        } catch {
+          // Malformed XRef / encrypted PDF — skip silently
+          console.warn = _warn;
+          continue;
+        } finally {
+          console.warn = _warn;
+        }
+        content = sanitize(pdfText);
       }
 
       if (!content) continue;

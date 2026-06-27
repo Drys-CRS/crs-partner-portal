@@ -104,8 +104,8 @@ export default function AdminDashboard({ adminEmail }: Props) {
       const data = await res.json();
       if (!res.ok) {
         const msg: string = data.error ?? "failed";
-        // Scanned PDFs / empty docs have no extractable text — treat as skipped, not errors
-        if (res.status === 400 && (msg.includes("no extractable text") || msg.includes("empty") || msg.includes("scanned"))) {
+        // Scanned, empty, or malformed PDFs can't be parsed — treat as skipped, not errors
+        if (res.status === 400 && (msg.includes("no extractable text") || msg.includes("empty") || msg.includes("scanned") || msg.includes("malformed") || msg.includes("corrupted"))) {
           skipped++;
         } else {
           errors.push(`${f.name}: ${msg}`);
