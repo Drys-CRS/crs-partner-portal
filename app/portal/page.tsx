@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import ResourceList from "@/components/portal/ResourceList";
 import SolutionAnalyzer from "@/components/portal/SolutionAnalyzer";
+import ChatAgent from "@/components/portal/ChatAgent";
 import { SOLUTIONS } from "./solutions";
 import {
   LogOut, Loader2, ExternalLink, CheckCircle2, ChevronRight,
@@ -385,6 +386,15 @@ export default function PortalPage() {
                 {/* ── Solution Tab ─────────────────────────────── */}
                 {activeSolution && (
                   <div className="space-y-10">
+                    {/* AI Agent */}
+                    <ChatAgent
+                      title={`Ask about ${activeSolution.name.replace(" (Coming Soon)", "")}`}
+                      subtitle="Get sales tips, positioning advice, and answers about this solution."
+                      placeholder={`e.g. How do I position ${activeSolution.name.replace(" (Coming Soon)", "")} against a competitor?`}
+                      solutionContext={activeSolution.name.replace(" (Coming Soon)", "")}
+                      defaultOpen={false}
+                    />
+
                     {/* Solution Header */}
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-gray-200 dark:border-slate-800 pb-8">
                       <div className="flex items-start gap-4">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Lock, BarChart3, FileText, ArrowRight, Users } from "lucide-react";
+import ChatAgent from "@/components/portal/ChatAgent";
 
 export default function Home() {
   return (
@@ -24,55 +25,67 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-900/40 border border-gold-700/50 text-gold-400 text-xs font-medium mb-8">
-          <Users className="h-3.5 w-3.5" />
-          Authorised Partner Access Only
-        </div>
+      <main className="flex-1 px-6 py-12">
+        <div className="max-w-5xl mx-auto space-y-14">
 
-        <div className="mb-8">
-          <Image src="/crs-logo.png" alt="Cyber Retaliator Solutions" width={120} height={120}
-            className="mx-auto h-24 w-auto" />
-        </div>
+          {/* Hero + Chat */}
+          <div className="grid lg:grid-cols-2 gap-10 items-start">
 
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight max-w-2xl leading-tight mb-6">
-          The CRS Partner{" "}
-          <span className="text-gold-400">Portal</span>
-        </h1>
+            {/* Left: branding */}
+            <div className="flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-900/40 border border-gold-700/50 text-gold-400 text-xs font-medium mb-6 w-fit">
+                <Users className="h-3.5 w-3.5" />
+                Authorised Partner Access Only
+              </div>
+              <Image src="/crs-logo.png" alt="Cyber Retaliator Solutions" width={80} height={80}
+                className="h-16 w-auto mb-6" />
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-4">
+                The CRS Partner{" "}
+                <span className="text-gold-400">Portal</span>
+              </h1>
+              <p className="text-slate-400 text-lg leading-relaxed mb-8">
+                Exclusive resources, deal intelligence, and sales enablement for
+                Cyber Retaliator Solutions authorised partners.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/signup"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold-600 hover:bg-gold-500 text-white font-semibold transition-colors text-sm">
+                  Become a Partner
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/login"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-700 hover:border-gold-700 text-slate-300 hover:text-white font-semibold transition-colors text-sm">
+                  Partner Sign In
+                </Link>
+              </div>
+            </div>
 
-        <p className="text-slate-400 text-lg max-w-xl leading-relaxed mb-10">
-          Exclusive resources, deal intelligence, and sales enablement content for
-          Cyber Retaliator Solutions authorised partners.
-        </p>
+            {/* Right: AI Agent */}
+            <ChatAgent
+              title="CRS Pre-Sales AI Agent"
+              subtitle="Ask about our cybersecurity portfolio, solution positioning, or partner incentives."
+              placeholder="e.g. My customer is struggling with lateral movement detection in their hybrid cloud…"
+              defaultOpen={true}
+            />
+          </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/signup"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold-600 hover:bg-gold-500 text-white font-semibold transition-colors text-sm">
-            Become a Partner
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link href="/login"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-700 hover:border-gold-700 text-slate-300 hover:text-white font-semibold transition-colors text-sm">
-            Partner Sign In
-          </Link>
+          {/* Features */}
+          <section className="border-t border-slate-800 pt-12">
+            <div className="grid sm:grid-cols-3 gap-8">
+              <Feature icon={<FileText className="h-5 w-5 text-gold-400" />} title="Tiered Resources">
+                Access sales decks, technical briefs, and marketing collateral matched to your partner tier.
+              </Feature>
+              <Feature icon={<BarChart3 className="h-5 w-5 text-gold-400" />} title="Deal Intelligence">
+                Stay ahead with market insights and competitive positioning content reserved for CRS partners.
+              </Feature>
+              <Feature icon={<Lock className="h-5 w-5 text-gold-400" />} title="Secure Access">
+                Passwordless magic-link login. No credentials to manage, no shared passwords.
+              </Feature>
+            </div>
+          </section>
+
         </div>
       </main>
-
-      {/* Features */}
-      <section className="border-t border-slate-800 px-6 py-16">
-        <div className="max-w-4xl mx-auto grid sm:grid-cols-3 gap-8">
-          <Feature icon={<FileText className="h-5 w-5 text-gold-400" />} title="Tiered Resources">
-            Access sales decks, technical briefs, and marketing collateral matched to your partner tier.
-          </Feature>
-          <Feature icon={<BarChart3 className="h-5 w-5 text-gold-400" />} title="Deal Intelligence">
-            Stay ahead with market insights and competitive positioning content reserved for CRS partners.
-          </Feature>
-          <Feature icon={<Lock className="h-5 w-5 text-gold-400" />} title="Secure Access">
-            Passwordless magic-link login. No credentials to manage, no shared passwords.
-          </Feature>
-        </div>
-      </section>
 
       <footer className="border-t border-slate-800 px-6 py-6 text-center text-xs text-slate-600">
         © {new Date().getFullYear()} Cyber Retaliator Solutions. All rights reserved.
