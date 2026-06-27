@@ -91,6 +91,7 @@ export default function AdminDashboard({ adminEmail }: Props) {
 
     setBulkProgress({ done: 0, total: syncable.length });
     let done = 0;
+    let skipped = 0;
     const errors: string[] = [];
 
     for (const f of syncable) {
@@ -101,7 +102,15 @@ export default function AdminDashboard({ adminEmail }: Props) {
         body: JSON.stringify({ fileId: f.id, fileName: f.name, fileUrl: f.webUrl }),
       });
       const data = await res.json();
-      if (!res.ok) errors.push(`${f.name}: ${data.error ?? "failed"}`);
+      if (!res.ok) {
+        const msg: string = data.error ?? "failed";
+        // Scanned PDFs / empty docs have no extractable text — treat as skipped, not errors
+        if (res.status === 400 && (msg.includes("no extractable text") || msg.includes("empty") || msg.includes("scanned"))) {
+          skipped++;
+        } else {
+          errors.push(`${f.name}: ${msg}`);
+        }
+      }
       done++;
       setBulkProgress({ done, total: syncable.length });
     }
@@ -110,10 +119,12 @@ export default function AdminDashboard({ adminEmail }: Props) {
     setBulkProgress(null);
     loadKB();
 
+    const synced = done - errors.length - skipped;
+    const skipNote = skipped > 0 ? ` (${skipped} scanned/empty file${skipped !== 1 ? "s" : ""} skipped)` : "";
     if (errors.length) {
-      setMsg({ type: "err", text: `Synced ${done - errors.length}/${syncable.length} files. Errors: ${errors.join("; ")}` });
+      setMsg({ type: "err", text: `Synced ${synced}/${syncable.length} files${skipNote}. Errors: ${errors.join("; ")}` });
     } else {
-      setMsg({ type: "ok", text: `Successfully synced ${done} file${done !== 1 ? "s" : ""} into the knowledge base.` });
+      setMsg({ type: "ok", text: `Successfully synced ${synced} file${synced !== 1 ? "s" : ""} into the knowledge base.${skipNote}` });
     }
   }
 
