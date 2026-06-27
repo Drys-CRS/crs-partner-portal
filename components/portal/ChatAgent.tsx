@@ -66,10 +66,15 @@ export default function ChatAgent({
         }),
       });
       const data = await res.json();
-      setMessages(prev => [
-        ...prev,
-        { role: "agent", content: data.response ?? data.error ?? "Something went wrong." },
-      ]);
+      const agentContent: string = data.response ?? data.error ?? "Something went wrong.";
+      setMessages(prev => [...prev, { role: "agent", content: agentContent }]);
+
+      // Fire-and-forget: reviewer evaluates the exchange in the background
+      fetch("/api/chat/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerQuery: text, agentResponse: agentContent }),
+      }).catch(() => { /* silent — review is non-critical */ });
     } catch {
       setMessages(prev => [...prev, { role: "agent", content: "Network error — please try again." }]);
     }
