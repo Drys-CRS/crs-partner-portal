@@ -90,28 +90,40 @@ export default function AdminDashboard({ adminEmail }: Props) {
     }
 
     setBulkProgress({ done: 0, total: syncable.length });
+
+    // Send in chunks of 10 so the server auths once per chunk and processes 5 files
+    // in parallel within each chunk — progress bar advances after each chunk.
+    const CHUNK = 10;
     let done = 0;
     let skipped = 0;
     const errors: string[] = [];
 
-    for (const f of syncable) {
-      setSyncing(f.id);
-      const res = await fetch("/api/admin/sharepoint", {
+    for (let i = 0; i < syncable.length; i += CHUNK) {
+      const chunk = syncable.slice(i, i + CHUNK);
+      const res = await fetch("/api/admin/sharepoint/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId: f.id, fileName: f.name, fileUrl: f.webUrl }),
+        body: JSON.stringify({ files: chunk.map(f => ({ id: f.id, name: f.name, webUrl: f.webUrl })) }),
       });
-      const data = await res.json();
+
       if (!res.ok) {
-        const msg: string = data.error ?? "failed";
-        // Scanned, empty, or malformed PDFs can't be parsed — treat as skipped, not errors
-        if (res.status === 400 && (msg.includes("no extractable text") || msg.includes("empty") || msg.includes("scanned") || msg.includes("malformed") || msg.includes("corrupted"))) {
-          skipped++;
-        } else {
-          errors.push(`${f.name}: ${msg}`);
+        // Whole chunk failed (auth error etc.) — mark each file as an error
+        const data = await res.json().catch(() => ({}));
+        errors.push(...chunk.map(f => `${f.name}: ${data.error ?? "batch failed"}`));
+        done += chunk.length;
+      } else {
+        const data = await res.json();
+        for (const r of (data.results ?? []) as { fileName: string; ok: boolean; skipped: boolean; error?: string }[]) {
+          if (r.ok) {
+            // synced
+          } else if (r.skipped) {
+            skipped++;
+          } else {
+            errors.push(`${r.fileName}: ${r.error ?? "failed"}`);
+          }
+          done++;
         }
       }
-      done++;
       setBulkProgress({ done, total: syncable.length });
     }
 
