@@ -16,6 +16,11 @@ function isSyncable(ext: string) {
   return TEXT_EXTENSIONS.includes(ext) || DOCX_EXTENSIONS.includes(ext) || PDF_EXTENSIONS.includes(ext);
 }
 
+// Postgres UTF-8 rejects null bytes and certain control chars from extracted docs
+function sanitize(text: string): string {
+  return text.replace(/\0/g, "").replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+}
+
 async function getGraphToken(): Promise<string> {
   const tenantId = process.env.AZURE_TENANT_ID;
   const clientId = process.env.AZURE_CLIENT_ID;
@@ -232,18 +237,18 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await fileRes.arrayBuffer());
 
   if (TEXT_EXTENSIONS.includes(ext)) {
-    content = buffer.toString("utf-8").trim();
+    content = sanitize(buffer.toString("utf-8"));
 
   } else if (DOCX_EXTENSIONS.includes(ext)) {
     const result = await mammoth.extractRawText({ buffer });
-    content = result.value.trim();
+    content = sanitize(result.value);
     if (!content) return NextResponse.json({ error: "Word document appears to be empty." }, { status: 400 });
 
   } else if (PDF_EXTENSIONS.includes(ext)) {
     // Dynamic import avoids pdf-parse test-file read at module load time
     const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
     const result = await pdfParse(buffer);
-    content = result.text.trim();
+    content = sanitize(result.text);
     if (!content) return NextResponse.json({ error: "PDF appears to have no extractable text (may be scanned image)." }, { status: 400 });
 
   } else {

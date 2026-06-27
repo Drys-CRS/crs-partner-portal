@@ -78,6 +78,10 @@ function isSyncable(ext: string) {
   return TEXT_EXTS.includes(ext) || DOCX_EXTS.includes(ext) || PDF_EXTS.includes(ext);
 }
 
+function sanitize(text: string): string {
+  return text.replace(/\0/g, "").replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+}
+
 // ── SharePoint sync ───────────────────────────────────────────────────────────
 
 async function syncSharePoint(): Promise<{ synced: number; errors: string[] }> {
@@ -114,13 +118,13 @@ async function syncSharePoint(): Promise<{ synced: number; errors: string[] }> {
 
       let content: string;
       if (TEXT_EXTS.includes(file.ext)) {
-        content = buffer.toString("utf-8").trim();
+        content = sanitize(buffer.toString("utf-8"));
       } else if (DOCX_EXTS.includes(file.ext)) {
         const result = await mammoth.extractRawText({ buffer });
-        content = result.value.trim();
+        content = sanitize(result.value);
       } else {
         const { default: pdfParse } = await import("pdf-parse") as unknown as { default: (buf: Buffer) => Promise<{ text: string }> };
-        content = (await pdfParse(buffer)).text.trim();
+        content = sanitize((await pdfParse(buffer)).text);
       }
 
       if (!content) continue;
