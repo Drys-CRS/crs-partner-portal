@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Sparkles, Loader2, ChevronRight, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, ChevronRight, AlertCircle, ShieldCheck } from "lucide-react";
 import type { AnalysisResult } from "@/app/api/analyze/route";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
 export default function SolutionAnalyzer({ onSelectSolution }: Props) {
   const [requirement, setRequirement] = useState("");
   const [loading, setLoading] = useState(false);
+  const [generalAssessment, setGeneralAssessment] = useState("");
   const [results, setResults] = useState<AnalysisResult[] | null>(null);
   const [error, setError] = useState("");
 
@@ -18,6 +19,7 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
     setLoading(true);
     setError("");
     setResults(null);
+    setGeneralAssessment("");
 
     const res = await fetch("/api/analyze", {
       method: "POST",
@@ -30,6 +32,7 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
     if (!res.ok || data.error) {
       setError(data.error ?? "Analysis failed. Please try again.");
     } else {
+      setGeneralAssessment(data.generalAssessment ?? "");
       setResults(data.analysis);
     }
   }
@@ -53,12 +56,12 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="mt-0.5 rounded-lg bg-gold-400/20 p-2">
-          <Sparkles className="h-5 w-5 text-gold-400" />
+          <ShieldCheck className="h-5 w-5 text-gold-400" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">AI Solution Matcher</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Cybersecurity Advisor</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Describe a security requirement or challenge and AI will match the best CRS solutions with a fit percentage.
+            Describe any security challenge or requirement — get expert analysis and matched CRS solutions.
           </p>
         </div>
       </div>
@@ -69,7 +72,7 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
           value={requirement}
           onChange={e => setRequirement(e.target.value)}
           rows={3}
-          placeholder="e.g. We need to monitor for compromised employee credentials and detect insider threats across our M365 environment..."
+          placeholder="e.g. We need to detect ransomware lateral movement across our hybrid cloud environment, and we have no visibility into our developers' pipeline security..."
           className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-400 resize-none"
         />
         <button
@@ -80,7 +83,7 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
           {loading ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Analysing…</>
           ) : (
-            <><Sparkles className="h-4 w-4" /> Find Solutions</>
+            <><Sparkles className="h-4 w-4" /> Analyse Requirement</>
           )}
         </button>
       </form>
@@ -93,11 +96,19 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
         </div>
       )}
 
-      {/* Results */}
+      {/* General Assessment */}
+      {generalAssessment && (
+        <div className="rounded-xl border border-blue-500/20 bg-blue-950/10 dark:bg-blue-950/20 px-5 py-4 space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">Expert Assessment</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{generalAssessment}</p>
+        </div>
+      )}
+
+      {/* CRS Solution Matches */}
       {results && results.length > 0 && (
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {results.length} solution{results.length !== 1 ? "s" : ""} matched
+            {results.length} CRS solution{results.length !== 1 ? "s" : ""} matched
           </p>
           {results.map(r => (
             <div
@@ -114,7 +125,6 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
                 </span>
               </div>
 
-              {/* Progress bar */}
               <div className="h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${matchColor(r.match)}`}
@@ -144,7 +154,7 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
 
       {results && results.length === 0 && (
         <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
-          No strong matches found. Try rephrasing your requirement with more detail.
+          No strong CRS solution matches found for this requirement. Try describing a more specific challenge.
         </p>
       )}
     </div>

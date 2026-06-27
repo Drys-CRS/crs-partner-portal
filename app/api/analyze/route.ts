@@ -12,6 +12,11 @@ export type AnalysisResult = {
   keyBenefit: string;
 };
 
+export type AnalyzeResponse = {
+  generalAssessment: string;
+  analysis: AnalysisResult[];
+};
+
 async function loadKBContext(): Promise<string> {
   try {
     const { rows } = await pool.query(
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
   const [kbContext] = await Promise.all([loadKBContext()]);
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const solutionList = SOLUTIONS.filter(s => !s.comingSoon)
     .map(s =>
@@ -52,41 +57,49 @@ export async function POST(req: NextRequest) {
     ? `\nADDITIONAL KNOWLEDGE BASE CONTEXT (use this to refine your analysis):\n${kbContext}\n`
     : "";
 
-  const prompt = `You are a senior cybersecurity solutions advisor for CRS (Cyber Retaliator Solutions), a value-added distributor operating across Africa.
+  const prompt = `You are a senior cybersecurity advisor with broad expertise across the entire cybersecurity landscape — threat detection, identity, DevSecOps, compliance, endpoint, cloud, dark web, VAPT, and more. You also represent CRS (Cyber Retaliator Solutions), a channel-focused VAD with a curated portfolio of best-of-breed solutions.
 
-A partner or prospect has described the following security requirement or challenge:
+A partner has described the following cybersecurity requirement or challenge:
 "${requirement.trim()}"
 
-Evaluate how well each CRS solution addresses this requirement. Rate each from 0–100%.
-
-CRS SOLUTIONS:
-${solutionList}
-${kbSection}
-Return ONLY a valid JSON array (no markdown, no explanation). Each object:
+Your response must be a single valid JSON object (no markdown, no explanation outside JSON):
 {
-  "solution": "<exact solution name>",
-  "match": <integer 0-100>,
-  "reasoning": "<1-2 sentences on why this solution fits or doesn't fit>",
-  "keyBenefit": "<single most relevant capability for this requirement>"
+  "generalAssessment": "<3-5 sentence expert assessment covering: what this cybersecurity challenge actually is, the risk if unaddressed, the standard industry approach to solving it, and any important nuances a partner should know when positioning a solution to their customer>",
+  "analysis": [
+    {
+      "solution": "<exact CRS solution name>",
+      "match": <integer 0-100>,
+      "reasoning": "<1-2 sentences on why this solution fits — reference the specific requirement>",
+      "keyBenefit": "<single most compelling capability for this use case>"
+    }
+  ]
 }
 
-Rules:
+CRS SOLUTIONS to evaluate:
+${solutionList}
+${kbSection}
+Rules for analysis array:
+- Evaluate ALL CRS solutions against the requirement
 - Sort descending by match
 - Only include solutions with match >= 15%
-- Be specific — reference the actual requirement in your reasoning`;
+- generalAssessment must be vendor-agnostic cybersecurity expertise — do not mention CRS or specific products there
+- Be specific in reasoning — name exact product features that address the requirement`;
 
   const result = await model.generateContent(prompt);
   const raw = result.response.text().trim();
   const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
 
-  let analysis: AnalysisResult[];
+  let parsed: { generalAssessment?: string; analysis?: AnalysisResult[] };
   try {
-    analysis = JSON.parse(cleaned);
-    if (!Array.isArray(analysis)) throw new Error("not array");
+    parsed = JSON.parse(cleaned);
+    if (!parsed.analysis || !Array.isArray(parsed.analysis)) throw new Error("missing analysis array");
   } catch {
     console.error("[analyze] Gemini response parse failed:", raw.slice(0, 200));
     return NextResponse.json({ error: "Failed to parse AI analysis. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({ analysis });
+  return NextResponse.json({
+    generalAssessment: parsed.generalAssessment ?? "",
+    analysis: parsed.analysis,
+  });
 }

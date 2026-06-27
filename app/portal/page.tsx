@@ -287,6 +287,9 @@ export default function PortalPage() {
                       </p>
                     </div>
 
+                    {/* Cybersecurity Advisor — top of overview */}
+                    <SolutionAnalyzer onSelectSolution={selectTab} />
+
                     {/* Who We Are */}
                     <section>
                       <h2 className="text-xl font-bold mb-4">About Cyber Retaliator Solutions</h2>
@@ -350,11 +353,6 @@ export default function PortalPage() {
                           </button>
                         ))}
                       </div>
-                    </section>
-
-                    {/* AI Solution Matcher */}
-                    <section>
-                      <SolutionAnalyzer onSelectSolution={selectTab} />
                     </section>
 
                     {/* Partner Incentives */}
