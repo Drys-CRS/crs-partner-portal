@@ -56,7 +56,7 @@ export default function SolutionAnalyzer({ onSelectSolution }: Props) {
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="mt-0.5 rounded-lg bg-gold-400/20 p-2">
-          <ShieldCheck className="h-5 w-5 text-gold-400" />
+          <ShieldCheck className="h-5 w-5 text-gold-500 dark:text-gold-400" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Cybersecurity Advisor</h2>

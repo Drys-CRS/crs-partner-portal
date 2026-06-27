@@ -8,7 +8,7 @@ import { SOLUTIONS } from "./solutions";
 import {
   LogOut, Loader2, ExternalLink, CheckCircle2, ChevronRight,
   Users, Megaphone, Mail, Monitor, BookOpen, DollarSign, Presentation,
-  Sun, Moon, Menu, X, LayoutGrid,
+  Sun, Moon, Menu, X, LayoutGrid, FolderOpen,
 } from "lucide-react";
 
 type User = { email: string; name: string };
@@ -139,7 +139,7 @@ export default function PortalPage() {
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setSidebarOpen(o => !o)}
-                className="lg:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                className="lg:hidden p-2 rounded-lg text-slate-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="Toggle menu"
               >
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -157,7 +157,7 @@ export default function PortalPage() {
               )}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="Toggle light/dark mode"
               >
                 {theme === "dark"
@@ -166,7 +166,7 @@ export default function PortalPage() {
               </button>
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 <span className="hidden sm:block">Sign out</span>
@@ -209,6 +209,19 @@ export default function PortalPage() {
               >
                 <LayoutGrid className="h-4 w-4 shrink-0" />
                 Overview
+              </button>
+
+              {/* Partner Documents */}
+              <button
+                onClick={() => selectTab("Partner Documents")}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 transition-colors ${
+                  activeTab === "Partner Documents"
+                    ? "bg-gold-400/20 text-gold-700 dark:text-gold-400 font-semibold"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <FolderOpen className="h-4 w-4 shrink-0" />
+                Partner Documents
               </button>
 
               <div className="pt-4 pb-1.5 px-3">
@@ -347,7 +360,7 @@ export default function PortalPage() {
                                 </p>
                                 <p className="text-xs text-slate-500 mt-0.5">{s.category}</p>
                               </div>
-                              <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-gold-500 shrink-0 mt-0.5 transition-colors" />
+                              <ChevronRight className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-gold-600 dark:group-hover:text-gold-500 shrink-0 mt-0.5 transition-colors" />
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">{s.tagline}</p>
                           </button>
@@ -377,6 +390,25 @@ export default function PortalPage() {
                           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Annual thresholds apply for annual MDF. Excludes monthly billing.</p>
                         </div>
                       </div>
+                    </section>
+                  </div>
+                )}
+
+                {/* ── Partner Documents ────────────────────────── */}
+                {activeTab === "Partner Documents" && (
+                  <div className="space-y-8">
+                    <div className="border-l-4 border-gold-400 pl-5">
+                      <div className="flex items-center gap-3 mb-1">
+                        <FolderOpen className="h-6 w-6 text-gold-500 dark:text-gold-400" />
+                        <h1 className="text-3xl font-bold tracking-tight">Partner Documents</h1>
+                      </div>
+                      <p className="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl">
+                        Sales decks, agreements, price lists, onboarding guides, and other resources shared directly with CRS partners.
+                      </p>
+                    </div>
+
+                    <section>
+                      <ResourceList items={tabContent} />
                     </section>
                   </div>
                 )}
@@ -464,7 +496,7 @@ export default function PortalPage() {
                             <ul className="space-y-2.5">
                               {activeSolution.icp.map((item, i) => (
                                 <li key={i} className="flex gap-3 text-sm text-slate-600 dark:text-slate-300">
-                                  <ChevronRight className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                                  <ChevronRight className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" />
                                   {item}
                                 </li>
                               ))}
